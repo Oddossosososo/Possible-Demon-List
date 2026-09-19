@@ -366,8 +366,11 @@ async function refreshAuth(){
 async function checkAdmin(s){
   if(!s) return false;
   try{
-    const r=await fetch(API.admin,{headers:{Authorization:"Bearer "+s.access_token}});
-    return r.ok;
+    const r=await fetch(API.staff+"?view=staff");
+    const j=await r.json();
+    const staff=j?.data||[];
+    const me=staff.find(x=>x.user_id===s.user.id);
+    return !!me && ["owner","admin"].includes(me.role) && me.active !== false;
   }catch{return false}
 }
 function openVerifyModal(email){
