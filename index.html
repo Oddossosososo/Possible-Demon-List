@@ -400,7 +400,7 @@ document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("cli
 async function loadLevels(){
   const el=$("rankings"); el.innerHTML='<div class="empty">Loading Possible…</div>';
   try{
-    const r=await fetch(API.levels); const json=await r.json();
+    const r=await fetch(API.levels+"?t="+Date.now(),{cache:"no-store"}); const json=await r.json();
     if(!r.ok) throw new Error(json?.error || "Could not load levels");
     const levels=Array.isArray(json)?json:(json.data||[]);
     $("levelCount").textContent = levels.length + " level" + (levels.length===1?"":"s");
@@ -435,7 +435,7 @@ function personCard(p,role){
 async function loadChanges(){
   const el=$("changes"); el.innerHTML='<div class="empty">Loading changelog…</div>';
   try{
-    const r=await fetch(API.changes+"?limit=60"); const data=await r.json(); if(!r.ok) throw new Error();
+    const r=await fetch(API.changes+"?limit=60&t="+Date.now(),{cache:"no-store"}); const data=await r.json(); if(!r.ok) throw new Error();
     const items=Array.isArray(data)?data:(data.data||[]);
     el.innerHTML=items.length?items.map(c=>`
       <article class="change">
@@ -616,7 +616,7 @@ async function adminPost(payload){
   const s=await session();
   if(!s){toast("Sign in first.");return null}
   try{
-    const r=await fetch(API.admin,{
+    const r=await fetch(API.admin+"?t="+Date.now(),{
       method:"POST",
       headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},
       body:JSON.stringify(payload)
@@ -733,7 +733,7 @@ async function loadAdmin(){
   box.innerHTML='<div class="empty">Checking access…</div>';
   const s=await session();
   if(!s){box.innerHTML='<div class="empty">Sign in with an admin account.</div>';return}
-  const r=await fetch(API.admin,{headers:{Authorization:"Bearer "+s.access_token}});
+  const r=await fetch(API.admin+"?t="+Date.now(),{cache:"no-store",headers:{Authorization:"Bearer "+s.access_token}});
   const j=await r.json();
   if(!r.ok){box.innerHTML='<div class="empty">Admin access required.</div>';return}
   adminState.data=j.data||{};
@@ -743,7 +743,7 @@ async function loadAdmin(){
 
 window.reviewSubmission=async(id,status)=>{
   const j=await adminPost({action:"review_submission",id,status});
-  if(j){toast("Submission updated.");loadAdmin();}
+  if(j){toast("Submission updated.");await loadAdmin();}
 };
 
 window.moderateProfile=async(id,status)=>{
@@ -756,37 +756,37 @@ window.moderateProfile=async(id,status)=>{
   });
   if(!result)return;
   const j=await adminPost({action:"moderate_profile",user_id:id,status,reason:result.reason||""});
-  if(j){toast("Profile updated.");loadAdmin();}
+  if(j){toast("Profile updated.");await loadAdmin();}
 };
 
 window.setLevelStatus=async(id,status)=>{
   const j=await adminPost({action:"set_level_status",id,status});
-  if(j){toast("Level status updated.");loadAdmin();loadLevels();}
+  if(j){toast("Level status updated.");await loadAdmin();await loadLevels();}
 };
 
 window.updateLevelRank=async(id)=>{
   const rank=Number($("rank-"+id)?.value);
   if(!Number.isInteger(rank)||rank<1){toast("Enter a valid rank.");return}
   const j=await adminPost({action:"update_rank",id,rank});
-  if(j){toast("Rank updated.");loadAdmin();loadLevels();}
+  if(j){toast("Rank updated.");await loadAdmin();await loadLevels();}
 };
 
 window.deleteLevel=async(id)=>{
   const result=await openAdminDialog({
-    title:"Remove level",
-    subtitle:"This removes the level from the active list and preserves its history.",
-    fields:[{key:"confirm",label:"Type REMOVE to confirm",type:"text",placeholder:"REMOVE",wide:true}],
-    confirmText:"Remove",
+    title:"Delete level",
+    subtitle:"This permanently removes the level and its stored history.",
+    fields:[{key:"confirm",label:"Type DELETE to confirm",type:"text",placeholder:"DELETE",wide:true}],
+    confirmText:"Delete",
     danger:true
   });
-  if(!result || result.confirm.trim()!=="REMOVE"){if(result)toast("Deletion cancelled.");return}
+  if(!result || result.confirm.trim()!=="DELETE"){if(result)toast("Deletion cancelled.");return}
   const j=await adminPost({action:"delete_level",id});
-  if(j){toast("Level removed from Possible.");loadAdmin();loadLevels();}
+  if(j){toast("Level deleted.");await loadAdmin();await loadLevels();}
 };
 
 window.editLevel=async(id)=>{
   const s=await session(); if(!s)return;
-  const r=await fetch(API.admin,{headers:{Authorization:"Bearer "+s.access_token}});
+  const r=await fetch(API.admin+"?t="+Date.now(),{cache:"no-store",headers:{Authorization:"Bearer "+s.access_token}});
   const j=await r.json(); if(!r.ok)return;
   const x=(j.data?.levels||[]).find(v=>v.id===id);
   if(!x){toast("Level not found.");return}
@@ -815,7 +815,7 @@ window.editLevel=async(id)=>{
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:result.thumbnail_url||"",notes:result.notes||""
   });
-  if(j2){toast("Level saved.");loadAdmin();loadLevels();}
+  if(j2){toast("Level saved.");await loadAdmin();await loadLevels();}
 };
 
 window.createLevel=async()=>{
@@ -842,11 +842,11 @@ window.createLevel=async()=>{
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:"",notes:result.notes||""
   });
-  if(j){toast("Level added.");loadAdmin();loadLevels();}
+  if(j){toast("Level added.");await loadAdmin();await loadLevels();}
 };
 
 const channel=sb.channel("possible-live")
-  .on("postgres_changes",{event:"*",schema:"public",table:"levels"},()=>{loadLevels();loadChanges();toast("Rankings updated live.");})
+  .on("postgres_changes",{event:"*",schema:"public",table:"levels"},async()=>{await loadLevels();await loadChanges();if(await checkAdmin(await session())) await loadAdmin();toast("Rankings updated live.");})
   .on("postgres_changes",{event:"*",schema:"public",table:"list_changes"},()=>loadChanges())
   .on("postgres_changes",{event:"*",schema:"public",table:"creators"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"players"},()=>loadCommunity())
