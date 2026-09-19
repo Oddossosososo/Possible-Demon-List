@@ -182,19 +182,23 @@
 
     <section class="view" id="view-verify">
       <div class="section-head">
-        <div><h2>Verify Account</h2><p>Securely verify your Possible email.</p></div>
+        <div><h2>Verify Account</h2><p>Enter the 6-digit code sent to your email.</p></div>
       </div>
       <div class="panel" style="max-width:620px">
         <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT VERIFICATION</div>
-        <h3 style="margin:0 0 8px">Email verification</h3>
-        <p class="muted">Possible uses Supabase Auth to confirm that the email address belongs to you. This page is only the Possible interface—the verified state is checked by the authentication system.</p>
+        <h3 style="margin:0 0 8px">Email verification code</h3>
+        <p class="muted">We'll send a one-time 6-digit code to your email. Enter it here to verify your Possible account.</p>
         <div style="margin-top:16px">
           <label>Email</label>
           <input id="verifyPageEmail" type="email" placeholder="you@example.com" autocomplete="email">
         </div>
+        <div style="margin-top:12px">
+          <label>6-digit code</label>
+          <input id="verifyPageCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:25px;letter-spacing:8px;text-align:center">
+        </div>
         <div class="form-actions">
-          <button class="primary" id="verifyPageSend">Send verification email</button>
-          <button class="secondary" id="verifyPageCheck">Check verification</button>
+          <button class="primary" id="verifyPageSend">Send code</button>
+          <button class="secondary" id="verifyPageCheck">Verify code</button>
         </div>
         <div id="verifyPageState" class="muted" style="margin-top:12px"></div>
       </div>
@@ -224,10 +228,11 @@
       <button class="mini" id="closeVerify">✕</button>
     </div>
     <p class="muted" style="margin-top:10px">We sent a verification email to <b id="verifyEmail"></b>.</p>
-    <p class="muted">Open that email and use the verification button. When you return here, Possible will recognize the verified account automatically.</p>
+    <p class="muted">Enter the 6-digit code from the email below.</p>
+    <div style="margin-top:12px"><label>6-digit code</label><input id="verifyModalCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:24px;letter-spacing:7px;text-align:center"></div>
     <div class="form-actions">
-      <button class="primary" id="resendVerify">Resend email</button>
-      <button class="secondary" id="checkVerify">I verified my email</button>
+      <button class="primary" id="resendVerify">Resend code</button>
+      <button class="secondary" id="checkVerify">Verify code</button>
     </div>
     <div id="verifyState" class="muted" style="margin-top:12px"></div>
   </div>
@@ -338,12 +343,30 @@ async function checkAdmin(s){
   }catch{return false}
 }
 function openVerifyModal(email){
-  $("verifyPageEmail").value=email||"";
-  $("verifyPageState").textContent="Verification email required. Use the controls below.";
-  closeVerifyModal();
-  showView("verify");
+  $("verifyEmail").textContent=email||"your email";
+  $("verifyState").textContent="";
+  $("verifyModalCode").value="";
+  $("verifyModal").style.display="flex";
 }
 function closeVerifyModal(){ $("verifyModal").style.display="none"; }
+
+async function verifyCode(email,token,stateEl){
+  if(!email || !/^\d{6}$/.test(token)){
+    stateEl.textContent="Enter the 6-digit code from your email.";
+    return false;
+  }
+  stateEl.textContent="Checking code…";
+  const {data,error}=await sb.auth.verifyOtp({email,token,type:"email"});
+  if(error){
+    stateEl.textContent=error.message;
+    return false;
+  }
+  closeVerifyModal();
+  toast("Email verified. Welcome to Possible!");
+  await claimOwnerIfAvailable(data.session||await session());
+  refreshAuth();
+  return true;
+}
 async function checkEmailVerified(){
   const {data:{user}}=await sb.auth.getUser();
   if(user?.email_confirmed_at){
@@ -359,25 +382,23 @@ async function resendVerification(){
   const email=$("verifyEmail").textContent;
   if(!email || email==="your email") return;
   const {error}=await sb.auth.resend({type:"signup",email});
-  $("verifyState").textContent=error ? error.message : "Verification email sent again.";
+  $("verifyState").textContent=error ? error.message : "New verification code sent.";
 }
 $("closeVerify").onclick=closeVerifyModal;
 $("resendVerify").onclick=resendVerification;
 $("checkVerify").onclick=async()=>{
-  $("verifyState").textContent="Checking…";
-  if(!(await checkEmailVerified())) $("verifyState").textContent="Not verified yet. Open the email, verify it, then try again.";
+  await verifyCode($("verifyEmail").textContent,$("verifyModalCode").value.trim(),$("verifyState"));
 };
 
 $("verifyPageSend").onclick=async()=>{
   const email=$("verifyPageEmail").value.trim();
   if(!email){$("verifyPageState").textContent="Enter your email first.";return;}
   const {error}=await sb.auth.resend({type:"signup",email});
-  $("verifyPageState").textContent=error?error.message:"Verification email sent. Check your inbox.";
+  $("verifyPageState").textContent=error?error.message:"Verification code sent. Check your inbox.";
 };
 $("verifyPageCheck").onclick=async()=>{
-  $("verifyPageState").textContent="Checking…";
-  const ok=await checkEmailVerified();
-  if(!ok) $("verifyPageState").textContent="Not verified yet. Verify the email, then press Check verification again.";
+  const email=$("verifyPageEmail").value.trim();
+  await verifyCode(email,$("verifyPageCode").value.trim(),$("verifyPageState"));
 };
 
 async function claimOwnerIfAvailable(s){
@@ -402,7 +423,10 @@ async function createAccount(){
     await claimOwnerIfAvailable(data.session);
     toast("Account created and signed in.");
   }else{
-    openVerifyModal(email);
+    $("verifyPageEmail").value=email;
+    $("verifyPageCode").value="";
+    showView("verify");
+    $("verifyPageState").textContent="Check your email for the 6-digit verification code.";
   }
   refreshAuth();
 }
