@@ -397,8 +397,11 @@ function showView(name){
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.viewJump)));
 
+let __levelsPromise=null;
 async function loadLevels(){
-  const el=$("rankings"); el.innerHTML='<div class="empty">Loading Possible…</div>';
+  if(__levelsPromise)return __levelsPromise;
+  const el=$("rankings");
+  __levelsPromise=(async()=>{ el.innerHTML='<div class="empty">Loading Possible…</div>';
   try{
     const r=await fetch(API.levels+"?t="+Date.now(),{cache:"no-store"}); const json=await r.json();
     if(!r.ok) throw new Error(json?.error || "Could not load levels");
@@ -415,25 +418,33 @@ async function loadLevels(){
         <div class="status">UNBEATEN</div>
       </article>`).join("") : '<div class="empty">No levels are currently on Possible.</div>';
   }catch(e){ console.error(e); el.innerHTML='<div class="empty">Couldn’t load the Possible list.</div>'; }
+  })().finally(()=>{__levelsPromise=null});
+  return __levelsPromise;
 }
 
+let __communityPromise=null;
 async function loadCommunity(){
-  try{
+  if(__communityPromise)return __communityPromise;
+  __communityPromise=(async()=>{try{
     const r=await fetch(API.community); const j=await r.json();
     const creators=j?.data?.creators||[]; const players=j?.data?.players||[];
     $("creators").innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No verified creators yet.</div>';
     $("players").innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No verified players yet.</div>';
   }catch(e){
     $("creators").innerHTML=$("players").innerHTML='<div class="empty">Couldn’t load community lists.</div>';
-  }
+  }} )().finally(()=>{__communityPromise=null});
+  return __communityPromise;
 }
 function personCard(p,role){
   const sub=role==="Player" && p.primary_icon_type ? `${p.primary_icon_type.toUpperCase()} #${p.primary_icon_id||1}` : role;
   return `<article class="person"><div class="person-top"><div class="avatar">${escapeHTML((p.username||"?").slice(0,1).toUpperCase())}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div></div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}<div class="tag">VERIFIED ${role.toUpperCase()}</div></article>`;
 }
 
+let __changesPromise=null;
 async function loadChanges(){
-  const el=$("changes"); el.innerHTML='<div class="empty">Loading changelog…</div>';
+  if(__changesPromise)return __changesPromise;
+  const el=$("changes");
+  __changesPromise=(async()=>{ el.innerHTML='<div class="empty">Loading changelog…</div>';
   try{
     const r=await fetch(API.changes+"?limit=60&t="+Date.now(),{cache:"no-store"}); const data=await r.json(); if(!r.ok) throw new Error();
     const items=Array.isArray(data)?data:(data.data||[]);
@@ -445,11 +456,25 @@ async function loadChanges(){
         <div class="change-time">${escapeHTML(fmtTime(c.created_at))}</div></div>
       </article>`).join(""):'<div class="empty">No changes recorded yet.</div>';
   }catch(e){el.innerHTML='<div class="empty">Couldn’t load the changelog.</div>';}
+  })().finally(()=>{__changesPromise=null});
+  return __changesPromise;
 }
 function labelChange(t){return ({added:"Level added",updated:"Level updated",rank_changed:"Rank changed",beaten:"Level beaten",archived:"Level archived",restored:"Level restored",deleted:"Level removed"})[t]||"List update";}
 
-async function session(){
-  return (await sb.auth.getSession()).data.session;
+let __sessionCache=null;
+let __sessionCacheAt=0;
+let __sessionPromise=null;
+
+async function session(force=false){
+  if(!force && __sessionCacheAt && Date.now()-__sessionCacheAt<5000) return __sessionCache;
+  if(__sessionPromise && !force) return __sessionPromise;
+  __sessionPromise=(async()=>{
+    const {data}=await sb.auth.getSession();
+    __sessionCache=data.session||null;
+    __sessionCacheAt=Date.now();
+    return __sessionCache;
+  })();
+  try{return await __sessionPromise}finally{__sessionPromise=null}
 }
 async function refreshAuth(){
   const s=await session();
@@ -461,7 +486,7 @@ async function refreshAuth(){
   $("verifyBadge").style.display=pending?"inline-flex":"none";
   $("verifyBadge").textContent=pending?"VERIFICATION PENDING":"VERIFIED";
   if(pending) $("verifyBadge").style.cssText="margin:0;display:inline-flex;color:#ffd36d;border-color:#ffd36d33;background:#ffd36d08";
-  const admin=await checkAdmin(s);
+  const admin=s ? await checkAdmin(s) : false;
   $("adminNav").classList.toggle("show",admin);
 }
 async function checkAdmin(s){
@@ -584,7 +609,11 @@ $("authBtn").onclick=async()=>{
   toast("Signed in.");
   refreshAuth();
 };
-sb.auth.onAuthStateChange(()=>refreshAuth());
+sb.auth.onAuthStateChange(()=>{
+  __sessionCache=null;
+  __sessionCacheAt=0;
+  refreshAuth();
+});
 
 $("submitStaff").onclick=async()=>{
   const s=await session(); if(!s){toast("Sign in first.");return}
@@ -595,8 +624,11 @@ $("submitStaff").onclick=async()=>{
   toast("Staff application submitted."); loadStaff();
 };
 
+let __staffPromise=null;
 async function loadStaff(){
-  const box=$("staffMembers"); box.innerHTML='<div class="empty">Loading staff…</div>';
+  if(__staffPromise)return __staffPromise;
+  const box=$("staffMembers");
+  __staffPromise=(async()=>{ box.innerHTML='<div class="empty">Loading staff…</div>';
   try{
     const r=await fetch(API.staff+"?view=staff"); const j=await r.json();
     if(!r.ok) throw new Error();
@@ -610,6 +642,8 @@ async function loadStaff(){
       if(rr.ok && jj.data?.length) $("myApplications").innerHTML="<div class='muted'><strong>Your applications</strong></div>"+jj.data.map(a=>`<div class="admin-card" style="margin-top:8px"><b>${escapeHTML(a.requested_role.toUpperCase())}</b> · ${escapeHTML(a.status)}<div class="person-sub">${escapeHTML(a.reason)}</div></div>`).join("");
     }
   }catch(e){box.innerHTML='<div class="empty">Couldn’t load staff.</div>';}
+  })().finally(()=>{__staffPromise=null});
+  return __staffPromise;
 }
 
 async function adminPost(payload){
@@ -743,7 +777,7 @@ async function loadAdmin(){
 
 window.reviewSubmission=async(id,status)=>{
   const j=await adminPost({action:"review_submission",id,status});
-  if(j){toast("Submission updated.");await loadAdmin();}
+  if(j){toast("Submission updated."); adminState.data=null; loadAdmin();}
 };
 
 window.moderateProfile=async(id,status)=>{
@@ -756,19 +790,19 @@ window.moderateProfile=async(id,status)=>{
   });
   if(!result)return;
   const j=await adminPost({action:"moderate_profile",user_id:id,status,reason:result.reason||""});
-  if(j){toast("Profile updated.");await loadAdmin();}
+  if(j){toast("Profile updated."); adminState.data=null; loadAdmin();}
 };
 
 window.setLevelStatus=async(id,status)=>{
   const j=await adminPost({action:"set_level_status",id,status});
-  if(j){toast("Level status updated.");await loadAdmin();await loadLevels();}
+  if(j){toast("Level status updated."); adminState.data=null; loadAdmin(); loadLevels();}
 };
 
 window.updateLevelRank=async(id)=>{
   const rank=Number($("rank-"+id)?.value);
   if(!Number.isInteger(rank)||rank<1){toast("Enter a valid rank.");return}
   const j=await adminPost({action:"update_rank",id,rank});
-  if(j){toast("Rank updated.");await loadAdmin();await loadLevels();}
+  if(j){toast("Rank updated."); adminState.data=null; loadAdmin(); loadLevels();}
 };
 
 window.deleteLevel=async(id)=>{
@@ -781,7 +815,7 @@ window.deleteLevel=async(id)=>{
   });
   if(!result || result.confirm.trim()!=="DELETE"){if(result)toast("Deletion cancelled.");return}
   const j=await adminPost({action:"delete_level",id});
-  if(j){toast("Level deleted.");await loadAdmin();await loadLevels();}
+  if(j){toast("Level deleted."); adminState.data=null; loadAdmin(); loadLevels();}
 };
 
 window.editLevel=async(id)=>{
@@ -815,7 +849,7 @@ window.editLevel=async(id)=>{
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:result.thumbnail_url||"",notes:result.notes||""
   });
-  if(j2){toast("Level saved.");await loadAdmin();await loadLevels();}
+  if(j2){toast("Level saved."); adminState.data=null; loadAdmin(); loadLevels();}
 };
 
 window.createLevel=async()=>{
@@ -842,7 +876,7 @@ window.createLevel=async()=>{
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:"",notes:result.notes||""
   });
-  if(j){toast("Level added.");await loadAdmin();await loadLevels();}
+  if(j){toast("Level added."); adminState.data=null; loadAdmin(); loadLevels();}
 };
 
 const channel=sb.channel("possible-live")
@@ -862,8 +896,9 @@ async function loadAccount(){
 }
 
 const startHash=(location.hash||"#rankings").slice(1);
-showView(["rankings","creators","players","changes","staff","verify","account","admin"].includes(startHash)?startHash:"rankings");
-loadLevels(); loadCommunity(); loadChanges(); loadStaff(); refreshAuth();
+const initialView=["rankings","creators","players","changes","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
+showView(initialView);
+refreshAuth();
 </script>
 </body>
 </html>
