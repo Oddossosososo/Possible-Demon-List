@@ -116,6 +116,7 @@
       </nav>
       <div class="auth">
         <span class="user-dot" id="userDot"></span>
+        <span class="status" id="verifyBadge" style="display:none;margin:0">VERIFICATION PENDING</span>
         <button class="nav-btn" id="createBtn">Create Account</button>
         <button class="nav-btn" id="authBtn">Sign In</button>
       </div>
@@ -332,6 +333,10 @@ async function refreshAuth(){
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
   if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
+  const pending=!!s && !s.user.email_confirmed_at;
+  $("verifyBadge").style.display=pending?"inline-flex":"none";
+  $("verifyBadge").textContent=pending?"VERIFICATION PENDING":"VERIFIED";
+  if(pending) $("verifyBadge").style.cssText="margin:0;display:inline-flex;color:#ffd36d;border-color:#ffd36d33;background:#ffd36d08";
   const admin=await checkAdmin(s);
   $("adminNav").classList.toggle("show",admin);
 }
@@ -426,7 +431,7 @@ async function createAccount(){
     $("verifyPageEmail").value=email;
     $("verifyPageCode").value="";
     showView("verify");
-    $("verifyPageState").textContent="Check your email for the 6-digit verification code.";
+    $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code when your email arrives.";
   }
   refreshAuth();
 }
