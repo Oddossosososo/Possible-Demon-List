@@ -54,6 +54,10 @@
     .level:hover{transform:translateY(-2px);border-color:#8190ff45;box-shadow:0 15px 42px #0006,0 0 25px #8190ff0f}
     .rank{width:70px;flex:none;font-size:26px;font-weight:1000;color:#7e889d}
     .rank.top{color:#f1f3ff;text-shadow:0 0 18px #fff5}
+    .level-thumb{width:120px;height:68px;flex:none;border-radius:14px;overflow:hidden;border:1px solid #ffffff12;background:#080b11;position:relative}
+    .level-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+    .level-thumb::after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;
+      display:grid;place-items:center;border-radius:50%;background:#000b;color:white;font-size:12px;padding-left:2px;box-shadow:0 0 18px #0008}
     .level-main{min-width:0}
     .level-name{font-weight:950;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .level-meta{margin-top:5px;color:#727d91;font-size:13px}
@@ -382,6 +386,16 @@ $("adminDialogSubmit").onclick=()=>{
 document.addEventListener("keydown",e=>{if(e.key==="Escape" && $("adminDialog")?.classList.contains("show"))closeAdminDialog();});
 function setLiveStatus(text,ok=true){const x=$("liveStatus");if(!x)return;x.textContent=text;x.style.color=ok?"#8ce9bc":"#ffbf7a";x.style.borderColor=ok?"#6de0a533":"#ffd36d33";x.style.background=ok?"#6de0a508":"#ffd36d08";}
 const fmtTime = v => { try { return new Date(v).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}); } catch { return v; } };
+function youtubeId(url){
+  const s=String(url||"").trim();
+  if(!s)return "";
+  const m=s.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+  return m?m[1]:"";
+}
+function youtubeThumbnail(url){
+  const id=youtubeId(url);
+  return id ? "https://img.youtube.com/vi/"+id+"/hqdefault.jpg" : "";
+}
 
 function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));
@@ -409,6 +423,7 @@ async function loadLevels(){
     $("levelCount").textContent = levels.length + " level" + (levels.length===1?"":"s");
     el.innerHTML = levels.length ? levels.map((l,i)=>`
       <article class="level">
+        ${l.thumbnail_url?'<div class="level-thumb"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
         <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
         <div class="level-main">
           <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
@@ -842,8 +857,8 @@ window.editLevel=async(id)=>{
       {key:"creator",label:"Creator",value:x.creator},
       {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
-      {key:"verification_url",label:"Verification URL",value:x.verification_url||""},
-      {key:"thumbnail_url",label:"Thumbnail URL",value:x.thumbnail_url||""},
+      {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
+      {key:"thumbnail_url",label:"Thumbnail URL (optional)",value:x.thumbnail_url||""},
       {key:"notes",label:"Admin notes",type:"textarea",value:x.notes||"",wide:true}
     ]
   });
@@ -852,10 +867,11 @@ window.editLevel=async(id)=>{
   if(!result.name?.trim()||!result.creator?.trim()||!Number.isInteger(gd)||gd<0){
     toast("Level name, creator and a valid GD ID are required.");return;
   }
+  const autoThumb=youtubeThumbnail(result.verification_url);
   const j2=await adminPost({
     action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,
     description:result.description||"",verification_url:result.verification_url||"",
-    thumbnail_url:result.thumbnail_url||"",notes:result.notes||""
+    thumbnail_url:result.thumbnail_url?.trim()||autoThumb,notes:result.notes||""
   });
   if(j2){toast("Level saved."); adminState.data=null; loadAdmin(); loadLevels();}
 };
@@ -869,7 +885,7 @@ window.createLevel=async()=>{
       {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"12345678"},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
-      {key:"verification_url",label:"Verification URL",placeholder:"https://...",wide:true},
+      {key:"verification_url",label:"YouTube / Verification URL",placeholder:"https://youtube.com/watch?v=...",wide:true},
       {key:"description",label:"Description",type:"textarea",placeholder:"Optional level description.",wide:true},
       {key:"notes",label:"Admin notes",type:"textarea",placeholder:"Optional.",wide:true}
     ]
@@ -879,10 +895,11 @@ window.createLevel=async()=>{
   if(!Number.isInteger(gd)||gd<0||!result.name?.trim()||!result.creator?.trim()){
     toast("GD ID, level name and creator are required.");return;
   }
+  const autoThumb=youtubeThumbnail(result.verification_url);
   const j=await adminPost({
     action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),
     description:result.description||"",verification_url:result.verification_url||"",
-    thumbnail_url:"",notes:result.notes||""
+    thumbnail_url:autoThumb,notes:result.notes||""
   });
   if(j){toast("Level added."); adminState.data=null; loadAdmin(); loadLevels();}
 };
