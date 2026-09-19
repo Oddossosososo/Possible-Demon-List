@@ -111,6 +111,7 @@
         <button class="nav-btn" data-view="players">Players</button>
         <button class="nav-btn" data-view="changes">Changelog</button>
         <button class="nav-btn" data-view="staff">Staff</button>
+        <button class="nav-btn" id="verifyNav" data-view="verify">Verify</button>
         <button class="nav-btn admin-only" id="adminNav" data-view="admin">Admin</button>
       </nav>
       <div class="auth">
@@ -176,6 +177,26 @@
         <div style="margin-top:12px"><label>Availability</label><input id="appAvailability" placeholder="Optional"></div>
         <div class="form-actions"><button class="primary" id="submitStaff">Submit Application</button></div>
         <div id="myApplications" style="margin-top:14px"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-verify">
+      <div class="section-head">
+        <div><h2>Verify Account</h2><p>Securely verify your Possible email.</p></div>
+      </div>
+      <div class="panel" style="max-width:620px">
+        <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT VERIFICATION</div>
+        <h3 style="margin:0 0 8px">Email verification</h3>
+        <p class="muted">Possible uses Supabase Auth to confirm that the email address belongs to you. This page is only the Possible interface—the verified state is checked by the authentication system.</p>
+        <div style="margin-top:16px">
+          <label>Email</label>
+          <input id="verifyPageEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-actions">
+          <button class="primary" id="verifyPageSend">Send verification email</button>
+          <button class="secondary" id="verifyPageCheck">Check verification</button>
+        </div>
+        <div id="verifyPageState" class="muted" style="margin-top:12px"></div>
       </div>
     </section>
 
@@ -305,6 +326,7 @@ async function refreshAuth(){
   $("userDot").classList.toggle("on",!!s);
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
+  if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
   const admin=await checkAdmin(s);
   $("adminNav").classList.toggle("show",admin);
 }
@@ -316,9 +338,10 @@ async function checkAdmin(s){
   }catch{return false}
 }
 function openVerifyModal(email){
-  $("verifyEmail").textContent=email||"your email";
-  $("verifyState").textContent="";
-  $("verifyModal").style.display="flex";
+  $("verifyPageEmail").value=email||"";
+  $("verifyPageState").textContent="Verification email required. Use the controls below.";
+  closeVerifyModal();
+  showView("verify");
 }
 function closeVerifyModal(){ $("verifyModal").style.display="none"; }
 async function checkEmailVerified(){
@@ -343,6 +366,18 @@ $("resendVerify").onclick=resendVerification;
 $("checkVerify").onclick=async()=>{
   $("verifyState").textContent="Checking…";
   if(!(await checkEmailVerified())) $("verifyState").textContent="Not verified yet. Open the email, verify it, then try again.";
+};
+
+$("verifyPageSend").onclick=async()=>{
+  const email=$("verifyPageEmail").value.trim();
+  if(!email){$("verifyPageState").textContent="Enter your email first.";return;}
+  const {error}=await sb.auth.resend({type:"signup",email});
+  $("verifyPageState").textContent=error?error.message:"Verification email sent. Check your inbox.";
+};
+$("verifyPageCheck").onclick=async()=>{
+  $("verifyPageState").textContent="Checking…";
+  const ok=await checkEmailVerified();
+  if(!ok) $("verifyPageState").textContent="Not verified yet. Verify the email, then press Check verification again.";
 };
 
 async function claimOwnerIfAvailable(s){
@@ -468,7 +503,7 @@ const channel=sb.channel("possible-live")
   .subscribe((status)=>{setLiveStatus(status==="SUBSCRIBED"?"● LIVE":"● "+status,status==="SUBSCRIBED");});
 
 const startHash=(location.hash||"#rankings").slice(1);
-showView(["rankings","creators","players","changes","staff","admin"].includes(startHash)?startHash:"rankings");
+showView(["rankings","creators","players","changes","staff","verify","admin"].includes(startHash)?startHash:"rankings");
 loadLevels(); loadCommunity(); loadChanges(); loadStaff(); refreshAuth();
 </script>
 </body>
