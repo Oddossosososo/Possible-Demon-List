@@ -746,11 +746,6 @@ window.reviewSubmission=async(id,status)=>{
   if(j){toast("Submission updated.");loadAdmin();}
 };
 
-window.reviewSubmission=async(id,status)=>{
-  const j=await adminPost({action:"review_submission",id,status});
-  if(j){toast("Submission updated.");loadAdmin();}
-};
-
 window.moderateProfile=async(id,status)=>{
   const result=await openAdminDialog({
     title:status==="approved"?"Approve profile":"Restrict profile",
