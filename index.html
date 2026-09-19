@@ -112,6 +112,7 @@
         <button class="nav-btn" data-view="changes">Changelog</button>
         <button class="nav-btn" data-view="staff">Staff</button>
         <button class="nav-btn" id="verifyNav" data-view="verify">Verify</button>
+        <button class="nav-btn" id="accountNav" data-view="account">Account</button>
         <button class="nav-btn admin-only" id="adminNav" data-view="admin">Admin</button>
       </nav>
       <div class="auth">
@@ -205,6 +206,27 @@
       </div>
     </section>
 
+    <section class="view" id="view-account">
+      <div class="section-head">
+        <div><h2>My Account</h2><p>Your Possible account information.</p></div>
+      </div>
+      <div class="panel" style="max-width:620px">
+        <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT</div>
+        <div class="admin-card">
+          <div class="person-sub">Email</div>
+          <div id="accountEmail" style="font-size:18px;font-weight:900;margin-top:5px">Not signed in</div>
+        </div>
+        <div class="admin-card" style="margin-top:10px">
+          <div class="person-sub">Verification</div>
+          <div id="accountVerification" style="font-size:18px;font-weight:900;margin-top:5px">—</div>
+        </div>
+        <div class="admin-card" style="margin-top:10px">
+          <div class="person-sub">Access</div>
+          <div id="accountRole" style="font-size:18px;font-weight:900;margin-top:5px">User</div>
+        </div>
+      </div>
+    </section>
+
     <section class="view" id="view-admin">
       <div class="section-head"><div><h2>Admin Panel</h2><p>Restricted to Possible staff with admin access.</p></div></div>
       <div id="adminArea" class="admin-grid"><div class="empty">Checking access…</div></div>
@@ -269,6 +291,7 @@ function showView(name){
   if(name==="changes") loadChanges();
   if(name==="staff") loadStaff();
   if(name==="admin") loadAdmin();
+  if(name==="account") loadAccount();
 }
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.viewJump)));
@@ -531,8 +554,16 @@ const channel=sb.channel("possible-live")
   .on("postgres_changes",{event:"*",schema:"public",table:"staff_members"},()=>loadStaff())
   .subscribe((status)=>{setLiveStatus(status==="SUBSCRIBED"?"● LIVE":"● "+status,status==="SUBSCRIBED");});
 
+async function loadAccount(){
+  const s=await session();
+  $("accountEmail").textContent=s?.user?.email||"Not signed in";
+  $("accountVerification").textContent=s?.user?.email_confirmed_at?"VERIFIED":"VERIFICATION PENDING";
+  const isAdmin=await checkAdmin(s);
+  $("accountRole").textContent=isAdmin?"OWNER / ADMIN":"USER";
+}
+
 const startHash=(location.hash||"#rankings").slice(1);
-showView(["rankings","creators","players","changes","staff","verify","admin"].includes(startHash)?startHash:"rankings");
+showView(["rankings","creators","players","changes","staff","verify","account","admin"].includes(startHash)?startHash:"rankings");
 loadLevels(); loadCommunity(); loadChanges(); loadStaff(); refreshAuth();
 </script>
 </body>
