@@ -511,6 +511,23 @@ async function loadStaff(){
   }catch(e){box.innerHTML='<div class="empty">Couldn’t load staff.</div>';}
 }
 
+async function adminPost(payload){
+  const s=await session();
+  if(!s){toast("Sign in first.");return null}
+  try{
+    const r=await fetch(API.admin,{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},
+      body:JSON.stringify(payload)
+    });
+    let j={}; try{j=await r.json()}catch{}
+    if(!r.ok){toast(j?.data?.error||j?.message||"Admin action failed.");return null}
+    return j;
+  }catch(e){
+    toast("Admin request failed."); return null;
+  }
+}
+
 async function loadAdmin(){
   const box=$("adminArea"); box.innerHTML='<div class="empty">Checking access…</div>';
   const s=await session(); if(!s){box.innerHTML='<div class="empty">Sign in with an admin account.</div>';return}
@@ -520,8 +537,13 @@ async function loadAdmin(){
   const d=j.data||{};
   box.innerHTML=`
     <div class="panel" style="grid-column:1/-1">
-      <h3 style="margin-top:0">Admin dashboard</h3>
-      <p class="muted">Levels: ${d.levels?.length||0} · Submissions: ${d.submissions?.length||0} · Profiles: ${d.profiles?.length||0} · Changes: ${d.changes?.length||0}</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0">Admin dashboard</h3>
+          <p class="muted" style="margin:6px 0 0">Levels: ${d.levels?.length||0} · Submissions: ${d.submissions?.length||0} · Profiles: ${d.profiles?.length||0} · Changes: ${d.changes?.length||0}</p>
+        </div>
+        <button class="primary" onclick="createLevel()">+ Add Level</button>
+      </div>
     </div>
     <div class="panel">
       <h3 style="margin-top:0">Submissions</h3>
@@ -533,24 +555,98 @@ async function loadAdmin(){
     </div>
     <div class="panel" style="grid-column:1/-1">
       <h3 style="margin-top:0">Levels</h3>
-      ${(d.levels||[]).slice(0,50).map(x=>`<div class="admin-row"><div><b>#${x.current_rank||"—"} · ${escapeHTML(x.name)}</b><div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)}</div></div><div class="mini-actions"><button class="mini success" onclick="setLevelStatus('${x.id}','unbeaten')">Unbeaten</button><button class="mini" onclick="setLevelStatus('${x.id}','beaten')">Beaten</button><button class="mini" onclick="setLevelStatus('${x.id}','archived')">Archive</button></div></div>`).join("")||'<div class="muted">No levels.</div>'}
+      ${(d.levels||[]).slice(0,50).map(x=>`<div class="admin-row">
+        <div style="min-width:220px">
+          <b>#${x.current_rank||"—"} · ${escapeHTML(x.name)}</b>
+          <div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)} · GD ${escapeHTML(x.gd_level_id)}</div>
+        </div>
+        <div class="mini-actions">
+          <input id="rank-${x.id}" type="number" min="1" value="${x.current_rank||""}" style="width:76px;padding:7px 8px">
+          <button class="mini" onclick="updateLevelRank('${x.id}')">Save Rank</button>
+          <button class="mini" onclick="editLevel('${x.id}')">Edit</button>
+          <button class="mini success" onclick="setLevelStatus('${x.id}','unbeaten')">Unbeaten</button>
+          <button class="mini" onclick="setLevelStatus('${x.id}','beaten')">Beaten</button>
+          <button class="mini" onclick="setLevelStatus('${x.id}','archived')">Archive</button>
+          <button class="mini danger" onclick="deleteLevel('${x.id}')">Delete</button>
+        </div>
+      </div>`).join("")||'<div class="muted">No levels.</div>'}
     </div>`;
 }
+
 window.reviewSubmission=async(id,status)=>{
-  const s=await session(); if(!s)return;
-  const r=await fetch(API.admin,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},body:JSON.stringify({action:"review_submission",id,status})});
-  toast(r.ok?"Submission updated.":"Couldn’t update submission."); loadAdmin();
+  const j=await adminPost({action:"review_submission",id,status});
+  if(j){toast("Submission updated.");loadAdmin();}
 };
+
 window.moderateProfile=async(id,status)=>{
-  const s=await session(); if(!s)return;
   const reason=prompt("Moderation note (optional):")||"";
-  const r=await fetch(API.admin,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},body:JSON.stringify({action:"moderate_profile",user_id:id,status,reason})});
-  toast(r.ok?"Profile updated.":"Couldn’t update profile."); loadAdmin();
+  const j=await adminPost({action:"moderate_profile",user_id:id,status,reason});
+  if(j){toast("Profile updated.");loadAdmin();}
 };
+
 window.setLevelStatus=async(id,status)=>{
+  const j=await adminPost({action:"set_level_status",id,status});
+  if(j){toast("Level status updated.");loadAdmin();loadLevels();}
+};
+
+window.updateLevelRank=async(id)=>{
+  const rank=Number($("rank-"+id)?.value);
+  if(!Number.isInteger(rank)||rank<1){toast("Enter a valid rank.");return}
+  const j=await adminPost({action:"update_rank",id,rank});
+  if(j){toast("Rank updated.");loadAdmin();loadLevels();}
+};
+
+window.deleteLevel=async(id)=>{
+  if(!confirm("Delete this level permanently?"))return;
+  const j=await adminPost({action:"delete_level",id});
+  if(j){toast("Level deleted.");loadAdmin();loadLevels();}
+};
+
+window.editLevel=async(id)=>{
   const s=await session(); if(!s)return;
-  const r=await fetch(API.admin,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},body:JSON.stringify({action:"set_level_status",id,status})});
-  toast(r.ok?"Level updated.":"Couldn’t update level."); loadAdmin(); loadLevels();
+  const r=await fetch(API.admin,{headers:{Authorization:"Bearer "+s.access_token}});
+  const j=await r.json(); if(!r.ok)return;
+  const x=(j.data?.levels||[]).find(v=>v.id===id);
+  if(!x){toast("Level not found.");return}
+
+  const name=prompt("Level name:",x.name); if(name===null)return;
+  const creator=prompt("Creator:",x.creator); if(creator===null)return;
+  const gd=prompt("Geometry Dash level ID:",x.gd_level_id); if(gd===null)return;
+  const description=prompt("Description:",x.description||""); if(description===null)return;
+  const verification_url=prompt("Verification URL:",x.verification_url||""); if(verification_url===null)return;
+  const thumbnail_url=prompt("Thumbnail URL:",x.thumbnail_url||""); if(thumbnail_url===null)return;
+  const notes=prompt("Admin notes:",x.notes||""); if(notes===null)return;
+
+  const j2=await adminPost({
+    action:"update_level",id,
+    name:name.trim(),
+    creator:creator.trim(),
+    gd_level_id:Number(gd),
+    description,verification_url,thumbnail_url,notes
+  });
+  if(j2){toast("Level saved.");loadAdmin();loadLevels();}
+};
+
+window.createLevel=async()=>{
+  const gd=prompt("Geometry Dash level ID:"); if(gd===null)return;
+  const name=prompt("Level name:"); if(name===null)return;
+  const creator=prompt("Creator:"); if(creator===null)return;
+  if(!name.trim()||!creator.trim()||!/^\d+$/.test(gd.trim())){toast("Level ID, name and creator are required.");return}
+  const verification_url=prompt("Verification URL (optional):")||"";
+  const description=prompt("Description (optional):")||"";
+  const notes=prompt("Admin notes (optional):")||"";
+
+  const j=await adminPost({
+    action:"create_level",
+    gd_level_id:Number(gd),
+    name:name.trim(),
+    creator:creator.trim(),
+    description,
+    verification_url,
+    thumbnail_url:"",
+    notes
+  });
+  if(j){toast("Level added.");loadAdmin();loadLevels();}
 };
 
 const channel=sb.channel("possible-live")
