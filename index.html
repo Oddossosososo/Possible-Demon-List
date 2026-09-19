@@ -115,6 +115,7 @@
       </nav>
       <div class="auth">
         <span class="user-dot" id="userDot"></span>
+        <button class="nav-btn" id="createBtn">Create Account</button>
         <button class="nav-btn" id="authBtn">Sign In</button>
       </div>
     </div>
@@ -310,26 +311,27 @@ async function claimOwnerIfAvailable(s){
   }catch(e){}
   return false;
 }
+async function createAccount(){
+  const email=prompt("Email for your Possible account:");
+  const password=prompt("Choose a password:");
+  if(!email||!password)return;
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error){toast(error.message);return}
+  if(data.session){
+    await claimOwnerIfAvailable(data.session);
+    toast("Account created and signed in.");
+  }else{
+    toast("Account created. Check your email, then sign in.");
+  }
+  refreshAuth();
+}
+$("createBtn").onclick=createAccount;
 $("authBtn").onclick=async()=>{
   const s=await session();
   if(s){await sb.auth.signOut(); toast("Signed out."); refreshAuth(); return;}
-  const mode=(prompt("Type SIGN IN to log in, or CREATE to make your Possible account:")||"").trim().toUpperCase();
-  if(!mode) return;
   const email=prompt("Possible email:");
   const password=prompt("Password:");
   if(!email||!password)return;
-  if(mode==="CREATE"){
-    const {data,error}=await sb.auth.signUp({email,password});
-    if(error){toast(error.message);return}
-    if(data.session){
-      await claimOwnerIfAvailable(data.session);
-      toast("Account created and signed in.");
-    }else{
-      toast("Account created. Check your email, then sign in.");
-    }
-    refreshAuth();
-    return;
-  }
   const {error}=await sb.auth.signInWithPassword({email,password});
   if(error){toast(error.message);return}
   const current=await session();
