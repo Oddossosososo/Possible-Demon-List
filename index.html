@@ -815,7 +815,15 @@ window.deleteLevel=async(id)=>{
   });
   if(!result || result.confirm.trim()!=="DELETE"){if(result)toast("Deletion cancelled.");return}
   const j=await adminPost({action:"delete_level",id});
-  if(j){toast("Level deleted."); adminState.data=null; loadAdmin(); loadLevels();}
+  if(j){
+    if(adminState.data?.levels){
+      adminState.data.levels=adminState.data.levels.filter(level=>level.id!==id);
+      renderAdminTab();
+    }
+    toast("Level deleted.");
+    loadLevels();
+    loadAdmin();
+  }
 };
 
 window.editLevel=async(id)=>{
