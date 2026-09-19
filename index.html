@@ -366,7 +366,7 @@ async function refreshAuth(){
 async function checkAdmin(s){
   if(!s) return false;
   try{
-    const r=await fetch(API.staff+"?view=applications",{headers:{Authorization:"Bearer "+s.access_token}});
+    const r=await fetch(API.admin,{headers:{Authorization:"Bearer "+s.access_token}});
     return r.ok;
   }catch{return false}
 }
