@@ -90,6 +90,17 @@
     .admin-only.show{display:block}
     .admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     .admin-card{padding:15px;border:1px solid var(--line);border-radius:18px;background:#ffffff04}
+    .admin-shell{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px}
+    .admin-menu{padding:10px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#121722,#0b0e15);height:max-content;position:sticky;top:90px}
+    .admin-menu-title{padding:10px 11px 12px;color:#737d91;font-size:10px;font-weight:1000;letter-spacing:1.5px}
+    .admin-menu-btn{display:block;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:#9da7ba;padding:11px 12px;border-radius:13px;font-weight:900;margin-bottom:5px}
+    .admin-menu-btn:hover{background:#ffffff07;color:#eef0ff}
+    .admin-menu-btn.active{background:#8190ff14;border-color:#8190ff35;color:#eef0ff}
+    .admin-content{min-width:0}
+    .admin-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .admin-stat{padding:15px;border:1px solid var(--line);border-radius:18px;background:#ffffff04}
+    .admin-stat b{display:block;font-size:24px;margin-top:4px}
+    @media(max-width:760px){.admin-shell{grid-template-columns:1fr}.admin-menu{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-menu-title{grid-column:1/-1}.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .admin-card h3{margin:0 0 6px;font-size:15px}.admin-card p{margin:0;color:#7f899c;font-size:12px;line-height:1.5}
     .admin-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #ffffff09}
     .mini-actions{display:flex;gap:7px;flex-wrap:wrap}
@@ -229,8 +240,19 @@
     </section>
 
     <section class="view" id="view-admin">
-      <div class="section-head"><div><h2>Admin Panel</h2><p>Restricted to Possible staff with admin access.</p></div></div>
-      <div id="adminArea" class="admin-grid"><div class="empty">Checking access…</div></div>
+      <div class="section-head">
+        <div><h2>Admin Control Center</h2><p>Manage the Possible database and moderation tools.</p></div>
+      </div>
+      <div id="adminArea" class="admin-shell">
+        <aside class="admin-menu">
+          <div class="admin-menu-title">ADMIN MENU</div>
+          <button class="admin-menu-btn active" data-admin-tab="overview">Overview</button>
+          <button class="admin-menu-btn" data-admin-tab="levels">Levels</button>
+          <button class="admin-menu-btn" data-admin-tab="submissions">Submissions</button>
+          <button class="admin-menu-btn" data-admin-tab="profiles">Profiles</button>
+        </aside>
+        <div class="admin-content" id="adminContent"><div class="empty">Checking access…</div></div>
+      </div>
     </section>
 
     <section style="margin-top:44px" class="panel">
@@ -529,49 +551,116 @@ async function adminPost(payload){
   }
 }
 
+let adminState={data:null,tab:"overview"};
+
+function adminTabButtons(){
+  document.querySelectorAll("[data-admin-tab]").forEach(btn=>{
+    btn.onclick=()=>{
+      adminState.tab=btn.dataset.adminTab;
+      document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x.dataset.adminTab===adminState.tab));
+      renderAdminTab();
+    };
+  });
+}
+
+function renderAdminTab(){
+  const d=adminState.data||{};
+  const box=$("adminContent");
+  if(!box)return;
+
+  if(adminState.tab==="overview"){
+    box.innerHTML=`
+      <div class="admin-stat-grid">
+        <div class="admin-stat"><div class="person-sub">LEVELS</div><b>${d.levels?.length||0}</b></div>
+        <div class="admin-stat"><div class="person-sub">SUBMISSIONS</div><b>${d.submissions?.length||0}</b></div>
+        <div class="admin-stat"><div class="person-sub">PROFILES</div><b>${d.profiles?.length||0}</b></div>
+        <div class="admin-stat"><div class="person-sub">CHANGES</div><b>${d.changes?.length||0}</b></div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div><h3 style="margin:0">Quick actions</h3><div class="person-sub">Common administrator actions.</div></div>
+          <button class="primary" onclick="createLevel()">+ Add Level</button>
+        </div>
+        <div class="form-actions" style="margin-top:16px">
+          <button class="mini" onclick="adminOpenTab('levels')">Manage Levels</button>
+          <button class="mini" onclick="adminOpenTab('submissions')">Review Submissions</button>
+          <button class="mini" onclick="adminOpenTab('profiles')">Moderate Profiles</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if(adminState.tab==="levels"){
+    box.innerHTML=`
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div><h3 style="margin:0">Level Manager</h3><div class="person-sub">${d.levels?.length||0} levels loaded.</div></div>
+          <button class="primary" onclick="createLevel()">+ Add Level</button>
+        </div>
+        <div style="margin-top:12px">
+          ${(d.levels||[]).slice(0,100).map(x=>`
+            <div class="admin-row">
+              <div style="min-width:220px">
+                <b>#${x.current_rank||"—"} · ${escapeHTML(x.name)}</b>
+                <div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)} · GD ${escapeHTML(x.gd_level_id)}</div>
+              </div>
+              <div class="mini-actions">
+                <input id="rank-${x.id}" type="number" min="1" value="${x.current_rank||""}" style="width:76px;padding:7px 8px">
+                <button class="mini" onclick="updateLevelRank('${x.id}')">Save Rank</button>
+                <button class="mini" onclick="editLevel('${x.id}')">Edit</button>
+                <button class="mini success" onclick="setLevelStatus('${x.id}','unbeaten')">Unbeaten</button>
+                <button class="mini" onclick="setLevelStatus('${x.id}','beaten')">Beaten</button>
+                <button class="mini" onclick="setLevelStatus('${x.id}','archived')">Archive</button>
+                <button class="mini danger" onclick="deleteLevel('${x.id}')">Delete</button>
+              </div>
+            </div>`).join("")||'<div class="empty">No levels.</div>'}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if(adminState.tab==="submissions"){
+    box.innerHTML=`
+      <div class="panel"><h3 style="margin-top:0">Submission Review</h3>
+      ${(d.submissions||[]).slice(0,100).map(x=>`
+        <div class="admin-row">
+          <div><b>${escapeHTML(x.level_name)}</b><div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)}</div></div>
+          <div class="mini-actions"><button class="mini success" onclick="reviewSubmission('${x.id}','approved')">Approve</button><button class="mini danger" onclick="reviewSubmission('${x.id}','rejected')">Reject</button></div>
+        </div>`).join("")||'<div class="empty">No submissions.</div>'}
+      </div>`;
+    return;
+  }
+
+  if(adminState.tab==="profiles"){
+    box.innerHTML=`
+      <div class="panel"><h3 style="margin-top:0">Profile Moderation</h3>
+      ${(d.profiles||[]).slice(0,100).map(x=>`
+        <div class="admin-row">
+          <div><b>${escapeHTML(x.username)}</b><div class="person-sub">${escapeHTML(x.moderation_status)}</div></div>
+          <div class="mini-actions"><button class="mini success" onclick="moderateProfile('${x.user_id}','approved')">Approve</button><button class="mini danger" onclick="moderateProfile('${x.user_id}','restricted')">Restrict</button></div>
+        </div>`).join("")||'<div class="empty">No profiles.</div>'}
+      </div>`;
+  }
+}
+
+function adminOpenTab(tab){
+  adminState.tab=tab;
+  document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x.dataset.adminTab===tab));
+  renderAdminTab();
+}
+
 async function loadAdmin(){
-  const box=$("adminArea"); box.innerHTML='<div class="empty">Checking access…</div>';
-  const s=await session(); if(!s){box.innerHTML='<div class="empty">Sign in with an admin account.</div>';return}
+  const box=$("adminContent");
+  if(!box)return;
+  box.innerHTML='<div class="empty">Checking access…</div>';
+  const s=await session();
+  if(!s){box.innerHTML='<div class="empty">Sign in with an admin account.</div>';return}
   const r=await fetch(API.admin,{headers:{Authorization:"Bearer "+s.access_token}});
   const j=await r.json();
   if(!r.ok){box.innerHTML='<div class="empty">Admin access required.</div>';return}
-  const d=j.data||{};
-  box.innerHTML=`
-    <div class="panel" style="grid-column:1/-1">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <h3 style="margin:0">Admin dashboard</h3>
-          <p class="muted" style="margin:6px 0 0">Levels: ${d.levels?.length||0} · Submissions: ${d.submissions?.length||0} · Profiles: ${d.profiles?.length||0} · Changes: ${d.changes?.length||0}</p>
-        </div>
-        <button class="primary" onclick="createLevel()">+ Add Level</button>
-      </div>
-    </div>
-    <div class="panel">
-      <h3 style="margin-top:0">Submissions</h3>
-      ${(d.submissions||[]).slice(0,20).map(x=>`<div class="admin-row"><div><b>${escapeHTML(x.level_name)}</b><div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)}</div></div><div class="mini-actions"><button class="mini success" onclick="reviewSubmission('${x.id}','approved')">Approve</button><button class="mini danger" onclick="reviewSubmission('${x.id}','rejected')">Reject</button></div></div>`).join("")||'<div class="muted">No submissions.</div>'}
-    </div>
-    <div class="panel">
-      <h3 style="margin-top:0">Profiles</h3>
-      ${(d.profiles||[]).slice(0,20).map(x=>`<div class="admin-row"><div><b>${escapeHTML(x.username)}</b><div class="person-sub">${escapeHTML(x.moderation_status)}</div></div><div class="mini-actions"><button class="mini success" onclick="moderateProfile('${x.user_id}','approved')">Approve</button><button class="mini danger" onclick="moderateProfile('${x.user_id}','restricted')">Restrict</button></div></div>`).join("")||'<div class="muted">No profiles.</div>'}
-    </div>
-    <div class="panel" style="grid-column:1/-1">
-      <h3 style="margin-top:0">Levels</h3>
-      ${(d.levels||[]).slice(0,50).map(x=>`<div class="admin-row">
-        <div style="min-width:220px">
-          <b>#${x.current_rank||"—"} · ${escapeHTML(x.name)}</b>
-          <div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)} · GD ${escapeHTML(x.gd_level_id)}</div>
-        </div>
-        <div class="mini-actions">
-          <input id="rank-${x.id}" type="number" min="1" value="${x.current_rank||""}" style="width:76px;padding:7px 8px">
-          <button class="mini" onclick="updateLevelRank('${x.id}')">Save Rank</button>
-          <button class="mini" onclick="editLevel('${x.id}')">Edit</button>
-          <button class="mini success" onclick="setLevelStatus('${x.id}','unbeaten')">Unbeaten</button>
-          <button class="mini" onclick="setLevelStatus('${x.id}','beaten')">Beaten</button>
-          <button class="mini" onclick="setLevelStatus('${x.id}','archived')">Archive</button>
-          <button class="mini danger" onclick="deleteLevel('${x.id}')">Delete</button>
-        </div>
-      </div>`).join("")||'<div class="muted">No levels.</div>'}
-    </div>`;
+  adminState.data=j.data||{};
+  adminTabButtons();
+  renderAdminTab();
 }
 
 window.reviewSubmission=async(id,status)=>{
@@ -619,10 +708,7 @@ window.editLevel=async(id)=>{
   const notes=prompt("Admin notes:",x.notes||""); if(notes===null)return;
 
   const j2=await adminPost({
-    action:"update_level",id,
-    name:name.trim(),
-    creator:creator.trim(),
-    gd_level_id:Number(gd),
+    action:"update_level",id,name:name.trim(),creator:creator.trim(),gd_level_id:Number(gd),
     description,verification_url,thumbnail_url,notes
   });
   if(j2){toast("Level saved.");loadAdmin();loadLevels();}
@@ -632,20 +718,13 @@ window.createLevel=async()=>{
   const gd=prompt("Geometry Dash level ID:"); if(gd===null)return;
   const name=prompt("Level name:"); if(name===null)return;
   const creator=prompt("Creator:"); if(creator===null)return;
-  if(!name.trim()||!creator.trim()||!/^\d+$/.test(gd.trim())){toast("Level ID, name and creator are required.");return}
+  if(!name.trim()||!creator.trim()||!/^d+$/.test(gd.trim())){toast("Level ID, name and creator are required.");return}
   const verification_url=prompt("Verification URL (optional):")||"";
   const description=prompt("Description (optional):")||"";
   const notes=prompt("Admin notes (optional):")||"";
-
   const j=await adminPost({
-    action:"create_level",
-    gd_level_id:Number(gd),
-    name:name.trim(),
-    creator:creator.trim(),
-    description,
-    verification_url,
-    thumbnail_url:"",
-    notes
+    action:"create_level",gd_level_id:Number(gd),name:name.trim(),creator:creator.trim(),
+    description,verification_url,thumbnail_url:"",notes
   });
   if(j){toast("Level added.");loadAdmin();loadLevels();}
 };
