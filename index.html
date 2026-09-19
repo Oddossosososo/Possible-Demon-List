@@ -134,7 +134,7 @@
     <section class="view active" id="view-rankings">
       <div class="section-head">
         <div><h2>Possible But Unbeaten</h2><p>Live from the Possible database.</p></div>
-        <p id="levelCount">0 levels</p>
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end"><span id="liveStatus" class="status" style="margin:0">CONNECTING…</span><span id="levelCount">0 levels</span></div>
       </div>
       <div id="rankings" class="cards"><div class="empty">Loading Possible…</div></div>
     </section>
@@ -213,6 +213,7 @@ const API = {
 const $ = id => document.getElementById(id);
 const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast = msg => { const x=$("toast"); x.textContent=msg; x.classList.add("show"); clearTimeout(window.__toast); window.__toast=setTimeout(()=>x.classList.remove("show"),3000); };
+function setLiveStatus(text,ok=true){const x=$("liveStatus");if(!x)return;x.textContent=text;x.style.color=ok?"#8ce9bc":"#ffbf7a";x.style.borderColor=ok?"#6de0a533":"#ffd36d33";x.style.background=ok?"#6de0a508":"#ffd36d08";}
 const fmtTime = v => { try { return new Date(v).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}); } catch { return v; } };
 
 function showView(name){
@@ -379,12 +380,12 @@ window.setLevelStatus=async(id,status)=>{
 };
 
 const channel=sb.channel("possible-live")
-  .on("postgres_changes",{event:"*",schema:"public",table:"levels"},()=>{loadLevels();loadChanges();})
+  .on("postgres_changes",{event:"*",schema:"public",table:"levels"},()=>{loadLevels();loadChanges();toast("Rankings updated live.");})
   .on("postgres_changes",{event:"*",schema:"public",table:"list_changes"},()=>loadChanges())
   .on("postgres_changes",{event:"*",schema:"public",table:"creators"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"players"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"staff_members"},()=>loadStaff())
-  .subscribe();
+  .subscribe((status)=>{setLiveStatus(status==="SUBSCRIBED"?"● LIVE":"● "+status,status==="SUBSCRIBED");});
 
 const startHash=(location.hash||"#rankings").slice(1);
 showView(["rankings","creators","players","changes","staff","admin"].includes(startHash)?startHash:"rankings");
