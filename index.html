@@ -773,15 +773,15 @@ window.updateLevelRank=async(id)=>{
 
 window.deleteLevel=async(id)=>{
   const result=await openAdminDialog({
-    title:"Delete level",
-    subtitle:"This permanently removes the level from Possible.",
-    fields:[{key:"confirm",label:"Type DELETE to confirm",type:"text",placeholder:"DELETE",wide:true}],
-    confirmText:"Delete",
+    title:"Remove level",
+    subtitle:"This removes the level from the active list and preserves its history.",
+    fields:[{key:"confirm",label:"Type REMOVE to confirm",type:"text",placeholder:"REMOVE",wide:true}],
+    confirmText:"Remove",
     danger:true
   });
-  if(!result || result.confirm.trim()!=="DELETE"){if(result)toast("Deletion cancelled.");return}
+  if(!result || result.confirm.trim()!=="REMOVE"){if(result)toast("Deletion cancelled.");return}
   const j=await adminPost({action:"delete_level",id});
-  if(j){toast("Level deleted.");loadAdmin();loadLevels();}
+  if(j){toast("Level removed from Possible.");loadAdmin();loadLevels();}
 };
 
 window.editLevel=async(id)=>{
