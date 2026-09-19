@@ -366,20 +366,10 @@ async function refreshAuth(){
 async function checkAdmin(s){
   if(!s) return false;
   try{
-    const {data:admin,error}=await sb.from("admins")
-      .select("role,active")
-      .eq("user_id",s.user.id)
-      .eq("active",true)
-      .maybeSingle();
-    if(!error && admin) return true;
-  }catch(e){}
-  try{
-    const {data:staff,error}=await sb.from("staff_members")
-      .select("role,active")
-      .eq("user_id",s.user.id)
-      .eq("active",true)
-      .maybeSingle();
-    return !error && !!staff && ["owner","admin"].includes(staff.role);
+    const r=await fetch(API.staff+"?view=staff");
+    const j=await r.json();
+    const me=(j?.data||[]).find(x=>x.user_id===s.user.id);
+    return !!me && me.active!==false && ["owner","admin"].includes(me.role);
   }catch(e){
     return false;
   }
