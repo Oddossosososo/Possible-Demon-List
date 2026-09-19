@@ -298,14 +298,42 @@ async function checkAdmin(s){
     return r.ok;
   }catch{return false}
 }
+async function claimOwnerIfAvailable(s){
+  if(!s) return false;
+  try{
+    const r=await fetch(API.staff,{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},
+      body:JSON.stringify({action:"claim_owner"})
+    });
+    if(r.ok){ toast("Owner access enabled."); return true; }
+  }catch(e){}
+  return false;
+}
 $("authBtn").onclick=async()=>{
   const s=await session();
   if(s){await sb.auth.signOut(); toast("Signed out."); refreshAuth(); return;}
+  const mode=(prompt("Type SIGN IN to log in, or CREATE to make your Possible account:")||"").trim().toUpperCase();
+  if(!mode) return;
   const email=prompt("Possible email:");
   const password=prompt("Password:");
   if(!email||!password)return;
+  if(mode==="CREATE"){
+    const {data,error}=await sb.auth.signUp({email,password});
+    if(error){toast(error.message);return}
+    if(data.session){
+      await claimOwnerIfAvailable(data.session);
+      toast("Account created and signed in.");
+    }else{
+      toast("Account created. Check your email, then sign in.");
+    }
+    refreshAuth();
+    return;
+  }
   const {error}=await sb.auth.signInWithPassword({email,password});
   if(error){toast(error.message);return}
+  const current=await session();
+  await claimOwnerIfAvailable(current);
   toast("Signed in.");
   refreshAuth();
 };
