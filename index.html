@@ -196,6 +196,22 @@
 
 <div class="toast" id="toast"></div>
 
+<div id="verifyModal" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:#0009;padding:20px">
+  <div class="panel" style="width:min(430px,100%);box-shadow:0 30px 100px #000b">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <h2 style="margin:0;font-size:21px">Verify your Possible account</h2>
+      <button class="mini" id="closeVerify">✕</button>
+    </div>
+    <p class="muted" style="margin-top:10px">We sent a verification email to <b id="verifyEmail"></b>.</p>
+    <p class="muted">Open that email and use the verification button. When you return here, Possible will recognize the verified account automatically.</p>
+    <div class="form-actions">
+      <button class="primary" id="resendVerify">Resend email</button>
+      <button class="secondary" id="checkVerify">I verified my email</button>
+    </div>
+    <div id="verifyState" class="muted" style="margin-top:12px"></div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = "https://pzjnoahhugdtdqlscvgp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TN3lOfoZFNGY7A7-CtBXbw_JqUCRnvF";
@@ -299,6 +315,36 @@ async function checkAdmin(s){
     return r.ok;
   }catch{return false}
 }
+function openVerifyModal(email){
+  $("verifyEmail").textContent=email||"your email";
+  $("verifyState").textContent="";
+  $("verifyModal").style.display="flex";
+}
+function closeVerifyModal(){ $("verifyModal").style.display="none"; }
+async function checkEmailVerified(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(user?.email_confirmed_at){
+    closeVerifyModal();
+    toast("Email verified. Welcome to Possible!");
+    await claimOwnerIfAvailable(await session());
+    refreshAuth();
+    return true;
+  }
+  return false;
+}
+async function resendVerification(){
+  const email=$("verifyEmail").textContent;
+  if(!email || email==="your email") return;
+  const {error}=await sb.auth.resend({type:"signup",email});
+  $("verifyState").textContent=error ? error.message : "Verification email sent again.";
+}
+$("closeVerify").onclick=closeVerifyModal;
+$("resendVerify").onclick=resendVerification;
+$("checkVerify").onclick=async()=>{
+  $("verifyState").textContent="Checking…";
+  if(!(await checkEmailVerified())) $("verifyState").textContent="Not verified yet. Open the email, verify it, then try again.";
+};
+
 async function claimOwnerIfAvailable(s){
   if(!s) return false;
   try{
@@ -321,7 +367,7 @@ async function createAccount(){
     await claimOwnerIfAvailable(data.session);
     toast("Account created and signed in.");
   }else{
-    toast("Account created. Check your email, then sign in.");
+    openVerifyModal(email);
   }
   refreshAuth();
 }
@@ -332,8 +378,12 @@ $("authBtn").onclick=async()=>{
   const email=prompt("Possible email:");
   const password=prompt("Password:");
   if(!email||!password)return;
-  const {error}=await sb.auth.signInWithPassword({email,password});
-  if(error){toast(error.message);return}
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){
+    if(/confirm|verified|verify/i.test(error.message)) openVerifyModal(email);
+    else toast(error.message);
+    return;
+  }
   const current=await session();
   await claimOwnerIfAvailable(current);
   toast("Signed in.");
