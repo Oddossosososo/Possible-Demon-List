@@ -99,6 +99,20 @@
     .admin-content{min-width:0}
     .admin-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .admin-stat{padding:15px;border:1px solid var(--line);border-radius:18px;background:#ffffff04}
+    .admin-dialog-backdrop{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px;background:#02040ad9;backdrop-filter:blur(12px)}
+    .admin-dialog-backdrop.show{display:flex}
+    .admin-dialog{width:min(620px,100%);max-height:88vh;overflow:auto;border:1px solid #8190ff35;border-radius:26px;
+      background:linear-gradient(145deg,#151b2a,#090c13);box-shadow:0 30px 120px #000b,0 0 50px #8190ff12}
+    .admin-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:20px 20px 12px;border-bottom:1px solid #ffffff0b}
+    .admin-dialog-kicker{color:#9aa5ff;font-size:10px;font-weight:1000;letter-spacing:1.8px}
+    .admin-dialog-title{margin:4px 0 0;font-size:22px;font-weight:1000}
+    .admin-dialog-body{padding:18px 20px}
+    .admin-dialog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .admin-dialog-grid .wide{grid-column:1/-1}
+    .admin-dialog-actions{display:flex;justify-content:flex-end;gap:9px;padding:14px 20px 20px}
+    .dialog-close{width:38px;height:38px;border:1px solid var(--line);background:#ffffff07;color:#b8c1d3;border-radius:12px;font-weight:1000}
+    .dialog-danger{background:linear-gradient(135deg,#ff728d,#d94d69)!important;border-color:#ff728d55!important}
+    @media(max-width:620px){.admin-dialog-grid{grid-template-columns:1fr}.admin-dialog-grid .wide{grid-column:auto}}
     .admin-stat b{display:block;font-size:24px;margin-top:4px}
     @media(max-width:760px){.admin-shell{grid-template-columns:1fr}.admin-menu{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-menu-title{grid-column:1/-1}.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .admin-card h3{margin:0 0 6px;font-size:15px}.admin-card p{margin:0;color:#7f899c;font-size:12px;line-height:1.5}
@@ -267,6 +281,24 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="admin-dialog-backdrop" id="adminDialog">
+  <div class="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDialogTitle">
+    <div class="admin-dialog-head">
+      <div>
+        <div class="admin-dialog-kicker">POSSIBLE ADMIN</div>
+        <h2 class="admin-dialog-title" id="adminDialogTitle">Admin action</h2>
+        <div class="person-sub" id="adminDialogSubtitle"></div>
+      </div>
+      <button class="dialog-close" id="adminDialogClose" type="button">✕</button>
+    </div>
+    <div class="admin-dialog-body" id="adminDialogBody"></div>
+    <div class="admin-dialog-actions">
+      <button class="secondary" id="adminDialogCancel" type="button">Cancel</button>
+      <button class="primary" id="adminDialogSubmit" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="verifyModal" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:#0009;padding:20px">
   <div class="panel" style="width:min(430px,100%);box-shadow:0 30px 100px #000b">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
@@ -302,6 +334,52 @@ const API = {
 const $ = id => document.getElementById(id);
 const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast = msg => { const x=$("toast"); x.textContent=msg; x.classList.add("show"); clearTimeout(window.__toast); window.__toast=setTimeout(()=>x.classList.remove("show"),3000); };
+
+let __adminDialogResolve=null;
+let __adminDialogFields=[];
+
+function closeAdminDialog(result=null){
+  const modal=$("adminDialog");
+  if(!modal)return;
+  modal.classList.remove("show");
+  if(__adminDialogResolve){const resolve=__adminDialogResolve;__adminDialogResolve=null;resolve(result);}
+}
+
+function openAdminDialog({title,subtitle="",fields=[],confirmText="Save",danger=false}){
+  return new Promise(resolve=>{
+    __adminDialogResolve=resolve;
+    __adminDialogFields=fields;
+    $("adminDialogTitle").textContent=title||"Admin action";
+    $("adminDialogSubtitle").textContent=subtitle;
+    $("adminDialogSubmit").textContent=confirmText;
+    $("adminDialogSubmit").classList.toggle("dialog-danger",!!danger);
+
+    const body=$("adminDialogBody");
+    body.innerHTML='<div class="admin-dialog-grid">'+fields.map((f,i)=>`
+      <div class="${f.wide?'wide':''}">
+        <label>${escapeHTML(f.label||"Field")}</label>
+        ${f.type==="textarea"
+          ? `<textarea data-dialog-index="${i}" placeholder="${escapeHTML(f.placeholder||"")}">${escapeHTML(f.value??"")}</textarea>`
+          : `<input data-dialog-index="${i}" type="${f.type||"text"}" value="${escapeHTML(f.value??"")}" placeholder="${escapeHTML(f.placeholder||"")}">`}
+      </div>`).join("")+'</div>';
+
+    $("adminDialog").classList.add("show");
+    const first=body.querySelector("input,textarea");
+    setTimeout(()=>first?.focus(),0);
+  });
+}
+
+$("adminDialogClose").onclick=()=>closeAdminDialog();
+$("adminDialogCancel").onclick=()=>closeAdminDialog();
+$("adminDialog").addEventListener("click",e=>{if(e.target.id==="adminDialog")closeAdminDialog();});
+$("adminDialogSubmit").onclick=()=>{
+  const result={};
+  document.querySelectorAll("#adminDialogBody [data-dialog-index]").forEach(el=>{
+    result[__adminDialogFields[Number(el.dataset.dialogIndex)]?.key]=el.value;
+  });
+  closeAdminDialog(result);
+};
+document.addEventListener("keydown",e=>{if(e.key==="Escape" && $("adminDialog")?.classList.contains("show"))closeAdminDialog();});
 function setLiveStatus(text,ok=true){const x=$("liveStatus");if(!x)return;x.textContent=text;x.style.color=ok?"#8ce9bc":"#ffbf7a";x.style.borderColor=ok?"#6de0a533":"#ffd36d33";x.style.background=ok?"#6de0a508":"#ffd36d08";}
 const fmtTime = v => { try { return new Date(v).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}); } catch { return v; } };
 
@@ -668,9 +746,21 @@ window.reviewSubmission=async(id,status)=>{
   if(j){toast("Submission updated.");loadAdmin();}
 };
 
+window.reviewSubmission=async(id,status)=>{
+  const j=await adminPost({action:"review_submission",id,status});
+  if(j){toast("Submission updated.");loadAdmin();}
+};
+
 window.moderateProfile=async(id,status)=>{
-  const reason=prompt("Moderation note (optional):")||"";
-  const j=await adminPost({action:"moderate_profile",user_id:id,status,reason});
+  const result=await openAdminDialog({
+    title:status==="approved"?"Approve profile":"Restrict profile",
+    subtitle:"Add an optional moderation note.",
+    fields:[{key:"reason",label:"Moderation note",type:"textarea",value:"",placeholder:"Why is this action being taken?",wide:true}],
+    confirmText:status==="approved"?"Approve":"Restrict",
+    danger:status!=="approved"
+  });
+  if(!result)return;
+  const j=await adminPost({action:"moderate_profile",user_id:id,status,reason:result.reason||""});
   if(j){toast("Profile updated.");loadAdmin();}
 };
 
@@ -687,7 +777,14 @@ window.updateLevelRank=async(id)=>{
 };
 
 window.deleteLevel=async(id)=>{
-  if(!confirm("Delete this level permanently?"))return;
+  const result=await openAdminDialog({
+    title:"Delete level",
+    subtitle:"This permanently removes the level from Possible.",
+    fields:[{key:"confirm",label:"Type DELETE to confirm",type:"text",placeholder:"DELETE",wide:true}],
+    confirmText:"Delete",
+    danger:true
+  });
+  if(!result || result.confirm.trim()!=="DELETE"){if(result)toast("Deletion cancelled.");return}
   const j=await adminPost({action:"delete_level",id});
   if(j){toast("Level deleted.");loadAdmin();loadLevels();}
 };
@@ -699,32 +796,56 @@ window.editLevel=async(id)=>{
   const x=(j.data?.levels||[]).find(v=>v.id===id);
   if(!x){toast("Level not found.");return}
 
-  const name=prompt("Level name:",x.name); if(name===null)return;
-  const creator=prompt("Creator:",x.creator); if(creator===null)return;
-  const gd=prompt("Geometry Dash level ID:",x.gd_level_id); if(gd===null)return;
-  const description=prompt("Description:",x.description||""); if(description===null)return;
-  const verification_url=prompt("Verification URL:",x.verification_url||""); if(verification_url===null)return;
-  const thumbnail_url=prompt("Thumbnail URL:",x.thumbnail_url||""); if(thumbnail_url===null)return;
-  const notes=prompt("Admin notes:",x.notes||""); if(notes===null)return;
-
+  const result=await openAdminDialog({
+    title:"Edit level",
+    subtitle:"Update the level information.",
+    confirmText:"Save changes",
+    fields:[
+      {key:"name",label:"Level name",value:x.name},
+      {key:"creator",label:"Creator",value:x.creator},
+      {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
+      {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
+      {key:"verification_url",label:"Verification URL",value:x.verification_url||""},
+      {key:"thumbnail_url",label:"Thumbnail URL",value:x.thumbnail_url||""},
+      {key:"notes",label:"Admin notes",type:"textarea",value:x.notes||"",wide:true}
+    ]
+  });
+  if(!result)return;
+  const gd=Number(result.gd);
+  if(!result.name?.trim()||!result.creator?.trim()||!Number.isInteger(gd)||gd<0){
+    toast("Level name, creator and a valid GD ID are required.");return;
+  }
   const j2=await adminPost({
-    action:"update_level",id,name:name.trim(),creator:creator.trim(),gd_level_id:Number(gd),
-    description,verification_url,thumbnail_url,notes
+    action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,
+    description:result.description||"",verification_url:result.verification_url||"",
+    thumbnail_url:result.thumbnail_url||"",notes:result.notes||""
   });
   if(j2){toast("Level saved.");loadAdmin();loadLevels();}
 };
 
 window.createLevel=async()=>{
-  const gd=prompt("Geometry Dash level ID:"); if(gd===null)return;
-  const name=prompt("Level name:"); if(name===null)return;
-  const creator=prompt("Creator:"); if(creator===null)return;
-  if(!name.trim()||!creator.trim()||!/^d+$/.test(gd.trim())){toast("Level ID, name and creator are required.");return}
-  const verification_url=prompt("Verification URL (optional):")||"";
-  const description=prompt("Description (optional):")||"";
-  const notes=prompt("Admin notes (optional):")||"";
+  const result=await openAdminDialog({
+    title:"Add level",
+    subtitle:"Create a new entry for the Possible list.",
+    confirmText:"Add level",
+    fields:[
+      {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"12345678"},
+      {key:"name",label:"Level name",placeholder:"Level name"},
+      {key:"creator",label:"Creator",placeholder:"Creator"},
+      {key:"verification_url",label:"Verification URL",placeholder:"https://...",wide:true},
+      {key:"description",label:"Description",type:"textarea",placeholder:"Optional level description.",wide:true},
+      {key:"notes",label:"Admin notes",type:"textarea",placeholder:"Optional.",wide:true}
+    ]
+  });
+  if(!result)return;
+  const gd=Number(result.gd);
+  if(!Number.isInteger(gd)||gd<0||!result.name?.trim()||!result.creator?.trim()){
+    toast("GD ID, level name and creator are required.");return;
+  }
   const j=await adminPost({
-    action:"create_level",gd_level_id:Number(gd),name:name.trim(),creator:creator.trim(),
-    description,verification_url,thumbnail_url:"",notes
+    action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),
+    description:result.description||"",verification_url:result.verification_url||"",
+    thumbnail_url:"",notes:result.notes||""
   });
   if(j){toast("Level added.");loadAdmin();loadLevels();}
 };
