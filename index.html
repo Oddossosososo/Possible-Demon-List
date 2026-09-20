@@ -77,8 +77,6 @@
     .level-wr{margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:9px;
       background:#6de0a50d;border:1px solid #6de0a52b;color:#8ce9bc;font-size:11px;font-weight:900}
     .level-wr span{color:#647087;font-weight:800}
-    .showcase-bar{margin-top:10px;display:flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:7px 11px;border:1px solid #8190ff2b;border-radius:10px;background:#8190ff0b;color:#aeb7ff;font-size:11px;font-weight:950;letter-spacing:.5px;cursor:pointer;transition:.16s}
-    .showcase-bar:hover{background:#8190ff16;border-color:#8190ff55;transform:translateY(-1px);box-shadow:0 0 18px #8190ff12}
     .status{margin-left:auto;flex:none;align-self:center;width:max-content;height:max-content;white-space:nowrap;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:#ffffff07;
       color:#8f98aa;font-size:11px;font-weight:900}
     .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -612,7 +610,7 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoPlayer=null,videoTicker=null;
+let videoPlayer=null,videoTicker=null,videoPendingId="";
 
 function formatVideoTime(v){
   const s=Math.max(0,Math.floor(Number(v)||0));
@@ -631,14 +629,14 @@ function updateVideoSeek(){
 }
 function setupVideoPlayer(id){
   if(typeof YT==="undefined" || !YT.Player){
-    setTimeout(()=>setupVideoPlayer(id),150);
+    videoPendingId=id;
     return;
   }
+  videoPendingId="";
   if(videoPlayer && typeof videoPlayer.destroy==="function"){
     try{videoPlayer.destroy()}catch{}
     videoPlayer=null;
   }
-  $("videoFrame").src="";
   videoPlayer=new YT.Player("videoFrame",{
     videoId:id,
     playerVars:{
@@ -680,11 +678,7 @@ function closeVideo(){
   $("videoModal").setAttribute("aria-hidden","true");
 }
 window.onYouTubeIframeAPIReady=()=>{
-  if($("videoModal")?.classList.contains("show")){
-    const src=$("videoFrame").getAttribute("src")||"";
-    const id=youtubeId(src);
-    if(id) setupVideoPlayer(id);
-  }
+  if(videoPendingId) setupVideoPlayer(videoPendingId);
 };
 $("videoSeek").addEventListener("input",e=>{
   if(!videoPlayer || typeof videoPlayer.seekTo!=="function") return;
