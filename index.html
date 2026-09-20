@@ -148,6 +148,10 @@
       width:100%;height:100%;display:block;border:0;
       pointer-events:auto;
     }
+    .video-seek{padding:12px 16px 14px;border-top:1px solid #ffffff0b;background:#0b0f17}
+    .video-seek-row{display:flex;align-items:center;gap:10px}
+    .video-seek input[type="range"]{flex:1;width:auto;height:5px;padding:0;accent-color:var(--accent);cursor:pointer}
+    .video-time{min-width:92px;text-align:right;color:#8993a8;font-size:11px;font-variant-numeric:tabular-nums;font-weight:800}
     .video-lock{
       position:absolute;z-index:10;background:transparent;pointer-events:auto;
       user-select:none;touch-action:none;
@@ -434,6 +438,12 @@
       <div class="video-lock video-lock-bottom-mid" aria-hidden="true"></div>
       <div class="video-lock video-lock-right-top" aria-hidden="true"></div>
     </div>
+    <div class="video-seek">
+      <div class="video-seek-row">
+        <input id="videoSeek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Video position">
+        <span class="video-time" id="videoTime">0:00 / 0:00</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -602,19 +612,85 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
+let videoPlayer=null,videoTicker=null;
+
+function formatVideoTime(v){
+  const s=Math.max(0,Math.floor(Number(v)||0));
+  const m=Math.floor(s/60), sec=s%60;
+  return m+":"+String(sec).padStart(2,"0");
+}
+function updateVideoSeek(){
+  if(!videoPlayer || typeof videoPlayer.getDuration!=="function") return;
+  try{
+    const duration=Number(videoPlayer.getDuration())||0;
+    const current=Number(videoPlayer.getCurrentTime())||0;
+    $("videoSeek").max=duration||100;
+    $("videoSeek").value=Math.min(current,duration||100);
+    $("videoTime").textContent=formatVideoTime(current)+" / "+formatVideoTime(duration);
+  }catch{}
+}
+function setupVideoPlayer(id){
+  if(typeof YT==="undefined" || !YT.Player){
+    setTimeout(()=>setupVideoPlayer(id),150);
+    return;
+  }
+  if(videoPlayer && typeof videoPlayer.destroy==="function"){
+    try{videoPlayer.destroy()}catch{}
+    videoPlayer=null;
+  }
+  $("videoFrame").src="";
+  videoPlayer=new YT.Player("videoFrame",{
+    videoId:id,
+    playerVars:{
+      autoplay:1,controls:0,disablekb:1,fs:0,rel:0,playsinline:1,
+      modestbranding:1
+    },
+    events:{
+      onReady:e=>{
+        e.target.playVideo();
+        updateVideoSeek();
+        clearInterval(videoTicker);
+        videoTicker=setInterval(updateVideoSeek,250);
+      },
+      onStateChange:()=>updateVideoSeek()
+    }
+  });
+}
 function watchLevelVideo(url,title){
   const id=youtubeId(url);
   if(!id){toast("No YouTube video is attached to this level.");return}
   $("videoTitle").textContent=title||"Level video";
-  $("videoFrame").src="https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1";
+  $("videoSeek").value=0;
+  $("videoTime").textContent="0:00 / 0:00";
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
+  setupVideoPlayer(id);
 }
 function closeVideo(){
+  clearInterval(videoTicker);
+  videoTicker=null;
+  if(videoPlayer && typeof videoPlayer.destroy==="function"){
+    try{videoPlayer.destroy()}catch{}
+  }
+  videoPlayer=null;
   $("videoFrame").src="";
+  $("videoSeek").value=0;
+  $("videoTime").textContent="0:00 / 0:00";
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
 }
+window.onYouTubeIframeAPIReady=()=>{
+  if($("videoModal")?.classList.contains("show")){
+    const src=$("videoFrame").getAttribute("src")||"";
+    const id=youtubeId(src);
+    if(id) setupVideoPlayer(id);
+  }
+};
+$("videoSeek").addEventListener("input",e=>{
+  if(!videoPlayer || typeof videoPlayer.seekTo!=="function") return;
+  videoPlayer.seekTo(Number(e.target.value)||0,true);
+  updateVideoSeek();
+});
 document.querySelectorAll(".video-lock").forEach(el=>{
   const block=e=>{e.preventDefault();e.stopPropagation()};
   el.addEventListener("pointerdown",block);
