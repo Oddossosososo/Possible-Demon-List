@@ -193,6 +193,8 @@
     .login-box h2{margin:0 0 8px}.login-box p{color:var(--muted);font-size:13px}.login-box label{display:block;color:#aeb7ca;font-size:12px;font-weight:800;margin:14px 0 6px}
     .login-box input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#ffffff08;color:var(--text);outline:none}
     .login-actions{display:flex;gap:8px;margin-top:16px}.login-actions button{flex:1}.login-close{float:right;border:0;background:none;color:#8993a8;font-size:22px}
+
+    .nav-more #moreMenu .nav-btn.active{background:#8190ff18;border-color:#8190ff42;color:#eef0ff}
 </style>
 </head>
 <body>
@@ -204,13 +206,18 @@
         <button class="nav-btn active" data-view="rankings">Rankings</button>
         <button class="nav-btn" data-view="creators">Creators</button>
         <button class="nav-btn" data-view="players">Players</button>
-        <button class="nav-btn" data-view="changes">Changelog</button>
-        <button class="nav-btn" data-view="time-machine">Time Machine</button>
-        <button class="nav-btn" data-view="submit">Submit</button>
-        <button class="nav-btn" data-view="staff">Staff</button>
-        <button class="nav-btn" id="verifyNav" data-view="verify">Verify</button>
-        <button class="nav-btn" id="accountNav" data-view="account">Account</button>
-        <button class="nav-btn admin-only" id="adminNav" data-view="admin">Admin</button>
+        <div class="nav-more" style="position:relative">
+          <button class="nav-btn" id="moreNav">More ▾</button>
+          <div id="moreMenu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:170px;padding:7px;border:1px solid var(--line);border-radius:16px;background:#0e121bf5;box-shadow:var(--shadow);backdrop-filter:blur(18px)">
+            <button class="nav-btn" data-view="changes" style="width:100%;text-align:left;margin:2px 0">Changelog</button>
+            <button class="nav-btn" data-view="time-machine" style="width:100%;text-align:left;margin:2px 0">Time Machine</button>
+            <button class="nav-btn" data-view="submit" style="width:100%;text-align:left;margin:2px 0">Submit</button>
+            <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Staff</button>
+            <button class="nav-btn" id="verifyNav" data-view="verify" style="width:100%;text-align:left;margin:2px 0">Verify</button>
+            <button class="nav-btn" id="accountNav" data-view="account" style="width:100%;text-align:left;margin:2px 0">Account</button>
+            <button class="nav-btn admin-only" id="adminNav" data-view="admin" style="width:100%;text-align:left;margin:2px 0">Admin</button>
+          </div>
+        </div>
       </nav>
       <div class="auth">
         <span class="status" id="verifyBadge" style="display:none;margin:0">VERIFICATION PENDING</span>
@@ -992,6 +999,8 @@ async function createAccount(){
   }
   refreshAuth();
 }
+$("moreNav").onclick=e=>{e.stopPropagation();const m=$("moreMenu");m.style.display=m.style.display==="none"?"block":"none"};
+document.addEventListener("click",e=>{if(!e.target.closest(".nav-more")) $("moreMenu").style.display="none"});
 $("createBtn").onclick=createAccount;
 function openLogin(){
   $("loginState").textContent="";
