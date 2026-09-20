@@ -241,6 +241,12 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:rgba(255,255,255,.02)}::-webkit-scrollbar-thumb{background:rgba(145,155,210,.22);border:2px solid transparent;background-clip:padding-box;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:rgba(145,155,210,.4);background-clip:padding-box}
 @media(max-width:700px){.panel,.card,.level,.person,.staff-card,.admin-card,.submission-card,.stat,.hero,.table-wrap{box-shadow:0 12px 35px rgba(0,0,0,.2),0 0 28px var(--ultra-glow)}}
 </style>
+<style id="possible-no-pause-overlay">
+/* Possible owns the player UI: never allow YouTube's pause screen/branding overlay to appear. */
+.video-frame-wrap iframe{pointer-events:none}
+.video-frame-wrap:after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:transparent}
+.video-lock-top{z-index:4}
+</style>
 </head>
 <body>
 <div class="app">
@@ -658,7 +664,7 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false,videoCutoff=0;
+let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false,videoCutoff=0,videoPaused=false,videoPauseTime=0;
 
 function formatVideoTime(v){
   const s=Math.max(0,Math.floor(Number(v)||0));
@@ -728,6 +734,10 @@ function watchLevelVideo(url,title,levelName){
   $("videoModal").setAttribute("aria-hidden","false");
   setupVideoPlayer(id);
 }
+function freezeVideoFrame(){
+  if(!videoPlayer || typeof videoPlayer.getCurrentTime!=="function")return;
+  try{videoPauseTime=Number(videoPlayer.getCurrentTime())||0;videoPaused=true;videoPlayer.pauseVideo();requestAnimationFrame(()=>{try{videoPlayer.seekTo(videoPauseTime,true)}catch{}})}catch{}
+}
 function closeVideo(){
   clearInterval(videoTicker);
   videoTicker=null;
@@ -735,6 +745,8 @@ function closeVideo(){
   videoPlayer=null;
   videoPendingId="";
   videoCutoff=0;
+  videoPaused=false;
+  videoPauseTime=0;
   $("videoFrame").src="about:blank";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
@@ -777,10 +789,11 @@ if(videoPauseButton){
     try{
       const state=videoPlayer.getPlayerState();
       if(state===YT.PlayerState.PLAYING){
-        videoPlayer.pauseVideo();
+        freezeVideoFrame();
         videoPauseButton.textContent="▶";
         videoPauseButton.setAttribute("aria-label","Play video");
       }else{
+        videoPaused=false;
         videoPlayer.playVideo();
         videoPauseButton.textContent="❚❚";
         videoPauseButton.setAttribute("aria-label","Pause video");
