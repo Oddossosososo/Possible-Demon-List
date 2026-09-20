@@ -330,6 +330,30 @@
       </div>
     </section>
 
+    <section class="view" id="view-verify">
+      <div class="section-head">
+        <div><h2>Verify Account</h2><p>Enter the 6-digit code sent to your email.</p></div>
+      </div>
+      <div class="panel" style="max-width:620px">
+        <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT VERIFICATION</div>
+        <h3 style="margin:0 0 8px">Email verification code</h3>
+        <p class="muted">We'll send a one-time 6-digit code to your email. Enter it here to verify your Possible account.</p>
+        <div style="margin-top:16px">
+          <label>Email</label>
+          <input id="verifyPageEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div style="margin-top:12px">
+          <label>6-digit code</label>
+          <input id="verifyPageCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:25px;letter-spacing:8px;text-align:center">
+        </div>
+        <div class="form-actions">
+          <button class="primary" id="verifyPageSend">Send code</button>
+          <button class="secondary" id="verifyPageCheck">Verify code</button>
+        </div>
+        <div id="verifyPageState" class="muted" style="margin-top:12px"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-account">
       <div class="section-head">
         <div><h2>My Account</h2><p>Your Possible account information.</p></div>
