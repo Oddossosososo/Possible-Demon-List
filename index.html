@@ -982,7 +982,6 @@ function renderAdminTab(){
     });
     return;
   }
-}
 
   if(adminState.tab==="players"){
     const stored=new Map((d.players||[]).map(x=>[String(x.username||"").trim().toLowerCase(),x]));
