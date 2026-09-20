@@ -754,7 +754,6 @@ async function session(force=false){
 }
 async function refreshAuth(){
   const s=await session();
-  $("userDot").classList.toggle("on",!!s);
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
   if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
