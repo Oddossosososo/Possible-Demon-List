@@ -610,50 +610,19 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoTicker=null;
-
-function formatVideoTime(v){
-  const s=Math.max(0,Math.floor(Number(v)||0));
-  const m=Math.floor(s/60), sec=s%60;
-  return m+":"+String(sec).padStart(2,"0");
-}
-function updateVideoSeek(){
-  const iframe=$("videoFrame");
-  if(!iframe)return;
-  const duration=Number(iframe.dataset.duration)||0;
-  const current=Number(iframe.dataset.current)||0;
-  $("videoSeek").max=duration||100;
-  $("videoSeek").value=Math.min(current,duration||100);
-  $("videoTime").textContent=formatVideoTime(current)+" / "+formatVideoTime(duration);
-}
 function watchLevelVideo(url,title){
   const id=youtubeId(url);
   if(!id){toast("No YouTube video is attached to this level.");return}
   $("videoTitle").textContent=title||"Level video";
-  $("videoSeek").value=0;
-  $("videoTime").textContent="0:00 / 0:00";
+  $("videoFrame").src="https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1";
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
-  $("videoFrame").dataset.videoId=id;
-  $("videoFrame").src="https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1";
 }
 function closeVideo(){
-  clearInterval(videoTicker);
-  videoTicker=null;
   $("videoFrame").src="";
-  $("videoFrame").dataset.videoId="";
-  $("videoSeek").value=0;
-  $("videoTime").textContent="0:00 / 0:00";
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
 }
-$("videoSeek").addEventListener("input",e=>{
-  const iframe=$("videoFrame");
-  const id=iframe.dataset.videoId;
-  if(!id)return;
-  const t=Number(e.target.value)||0;
-  iframe.src="https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&start="+Math.floor(t);
-});
 document.querySelectorAll(".video-lock").forEach(el=>{
   const block=e=>{e.preventDefault();e.stopPropagation()};
   el.addEventListener("pointerdown",block);
