@@ -202,6 +202,27 @@
 
     .nav-more #moreMenu .nav-btn.active{background:#8190ff18;border-color:#8190ff42;color:#eef0ff}
 </style>
+<style id="possible-ultra-video-css">
+.video-modal{background:radial-gradient(circle at 50% 42%,rgba(93,112,255,.13),transparent 38%),radial-gradient(circle at 15% 85%,rgba(173,86,255,.09),transparent 30%),#010208ee;backdrop-filter:blur(22px) saturate(130%);-webkit-backdrop-filter:blur(22px) saturate(130%);padding:clamp(12px,2.5vw,32px)}
+.video-modal.show{animation:possibleVideoIn .28s cubic-bezier(.2,.8,.2,1)}
+.video-shell{width:min(1120px,100%);border:1px solid rgba(150,165,255,.24);border-radius:30px;overflow:hidden;background:linear-gradient(145deg,#0c101b,#070a12 58%,#0a0d17);box-shadow:0 40px 120px rgba(0,0,0,.72),0 0 0 1px rgba(255,255,255,.025),0 0 90px rgba(103,117,255,.13);transform:translateZ(0)}
+.video-head{padding:17px 20px;min-height:66px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));border-bottom:1px solid rgba(255,255,255,.075)}
+.video-head:after{content:"";position:absolute;left:20px;right:20px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(130,145,255,.5),transparent);opacity:.65}
+.video-head .admin-dialog-kicker{letter-spacing:2.2px;font-size:9px;color:#aab4ff}
+.video-head .admin-dialog-title{margin-top:3px;font-size:clamp(16px,2vw,21px);font-weight:950;letter-spacing:-.4px}
+.video-frame-wrap{position:relative;aspect-ratio:16/9;background:#000;isolation:isolate;box-shadow:inset 0 0 80px rgba(0,0,0,.35)}
+.video-frame-wrap:before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(90,105,255,.08),transparent 18%,transparent 82%,rgba(174,95,255,.06)),linear-gradient(180deg,rgba(255,255,255,.025),transparent 18%,transparent 82%,rgba(0,0,0,.16));mix-blend-mode:screen}
+.video-frame-wrap iframe{width:100%;height:100%;display:block;border:0;pointer-events:none;transform:scale(1.002)}
+.video-seek{padding:13px 18px 15px;background:linear-gradient(180deg,#0b0f18,#080b12);border-top:1px solid rgba(255,255,255,.07)}
+.video-seek-row{gap:13px}
+.video-seek input[type="range"]{height:4px;border-radius:99px;cursor:pointer;filter:drop-shadow(0 0 7px rgba(130,145,255,.28))}
+.video-time{min-width:105px;color:#a6aec1;font-size:11px;letter-spacing:.2px}
+.dialog-close{width:38px;height:38px;border-radius:13px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);color:#b9c0d0;transition:transform .18s ease,background .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease}
+.dialog-close:hover{transform:translateY(-1px) scale(1.035);background:rgba(255,80,110,.13);border-color:rgba(255,100,125,.34);color:#fff;box-shadow:0 8px 26px rgba(255,70,100,.12)}
+.dialog-close:active{transform:scale(.96)}
+@keyframes possibleVideoIn{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){.video-modal{padding:8px}.video-shell{border-radius:20px}.video-head{padding:13px 14px;min-height:58px}.video-head:after{left:14px;right:14px}.video-seek{padding:10px 12px 12px}.video-time{min-width:82px;font-size:10px}.dialog-close{width:34px;height:34px;border-radius:11px}}
+</style>
 </head>
 <body>
 <div class="app">
