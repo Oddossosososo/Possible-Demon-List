@@ -405,20 +405,16 @@ const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','
 function normalizeCurrentWR(value){
   let s=String(value??"").trim();
   if(!s)return "";
-  if(/^\d+(?:\.\d+)?%?$/.test(s)) return s.endsWith("%")?s:s+"%";
-  if(/(?:^|\s)(\d+(?:\.\d+)?)$/.test(s)) return s+"%";
-  if(/(?:^|\s)(\d+(?:\.\d+)?)\s*%$/.test(s)) return s;
+  if(/^\d+(?:\.\d+)?%$/.test(s)) return s;
+  if(/^\d+(?:\.\d+)?$/.test(s)) return s+"%";
+  const m=s.match(/^(.*?)(\d+(?:\.\d+)?)\s*%?$/);
+  if(m && /[A-Za-z]/.test(m[1])) return m[1].trimEnd()+" "+m[2]+"%";
   return s;
 }
 function bindPercentInput(){
   document.querySelectorAll('#adminDialogBody input[data-normalize="percent"]').forEach(el=>{
-    el.addEventListener("input",()=>{
-      const raw=String(el.value||"");
-      if(/^\d+(?:\.\d+)?$/.test(raw.trim())) el.value=raw.trim()+"%";
-      else {
-        const m=raw.match(/^(.*\s)(\d+(?:\.\d+)?)$/);
-        if(m) el.value=m[1]+m[2]+"%";
-      }
+    el.addEventListener("blur",()=>{
+      el.value=normalizeCurrentWR(el.value);
     });
   });
 }
