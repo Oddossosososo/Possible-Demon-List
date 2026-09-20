@@ -645,13 +645,13 @@ function setupVideoPlayer(id){
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=new YT.Player("videoFrame",{
     videoId:id,
-    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,origin:location.origin,mute:0},
+    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,origin:location.origin,mute:1},
     events:{
       onReady:()=>{
         videoStarted=false;
         $("videoStartHint").classList.add("hidden");
         try{
-          videoPlayer.unMute();
+          videoPlayer.mute();
           videoPlayer.playVideo();
         }catch(e){console.warn("Possible autoplay:",e)}
         updateVideoSeek();
@@ -660,7 +660,7 @@ function setupVideoPlayer(id){
         videoRetryTimer=setTimeout(()=>{
           try{
             if(videoPlayer && videoPlayer.getPlayerState()!==YT.PlayerState.PLAYING){
-              videoPlayer.unMute();
+              videoPlayer.mute();
               videoPlayer.playVideo();
             }
           }catch{}
@@ -687,7 +687,7 @@ function watchLevelVideo(url,title){
   $("videoTitle").textContent=title||"Level video";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
-  $("videoStartHint").textContent="Please move your mouse or finger off the video to watch";
+  $("videoStartHint").textContent="";
   $("videoStartHint").classList.add("hidden");
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
@@ -709,6 +709,11 @@ function closeVideo(){
 window.onYouTubeIframeAPIReady=()=>{
   if(videoPendingId)setupVideoPlayer(videoPendingId);
 };
+document.addEventListener("pointerdown",()=>{
+  if(videoPlayer && videoStarted){
+    try{videoPlayer.unMute()}catch{}
+  }
+},{passive:true});
 const videoWrap=$("videoFrame")?.parentElement;
 if(videoWrap){
   const showPointerWarning=()=>{
