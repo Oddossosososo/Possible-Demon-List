@@ -159,6 +159,7 @@
         <button class="nav-btn" data-view="creators">Creators</button>
         <button class="nav-btn" data-view="players">Players</button>
         <button class="nav-btn" data-view="changes">Changelog</button>
+        <button class="nav-btn" data-view="submit">Submit</button>
         <button class="nav-btn" data-view="staff">Staff</button>
         <button class="nav-btn" id="verifyNav" data-view="verify">Verify</button>
         <button class="nav-btn" id="accountNav" data-view="account">Account</button>
@@ -205,6 +206,26 @@
     <section class="view" id="view-changes">
       <div class="section-head"><div><h2>Changelog</h2><p>What has changed on Possible.</p></div></div>
       <div id="changes" class="cards"><div class="empty">Loading changelog…</div></div>
+    </section>
+
+    <section class="view" id="view-submit">
+      <div class="section-head"><div><h2>Submit a Level</h2><p>Send a level to the Possible team for review.</p></div></div>
+      <div class="panel" style="max-width:720px">
+        <div class="kicker" style="margin-bottom:14px">POSSIBLE SUBMISSION</div>
+        <div id="submitGate" class="muted">Checking account…</div>
+        <div id="submitForm" style="display:none;margin-top:14px">
+          <div class="form-grid">
+            <div><label>Geometry Dash ID</label><input id="submitGD" type="number" min="0" placeholder="12345678"></div>
+            <div><label>Level name</label><input id="submitName" placeholder="Level name"></div>
+            <div><label>Creator</label><input id="submitCreator" placeholder="Creator"></div>
+            <div><label>Verification / Showcase URL</label><input id="submitVideo" placeholder="https://youtube.com/watch?v=..."></div>
+          </div>
+          <div style="margin-top:12px"><label>Notes</label><textarea id="submitNotes" placeholder="Anything the Possible team should know."></textarea></div>
+          <div class="form-actions"><button class="primary" id="submitLevelBtn">Submit Level</button></div>
+          <div id="submitState" class="muted" style="margin-top:12px"></div>
+        </div>
+        <div id="mySubmissions" style="margin-top:18px"></div>
+      </div>
     </section>
 
     <section class="view" id="view-staff">
@@ -366,6 +387,7 @@ const API = {
   levels: SUPABASE_URL + "/functions/v1/get-possible-levels",
   changes: SUPABASE_URL + "/functions/v1/get-possible-changelog",
   community: SUPABASE_URL + "/functions/v1/community-lists",
+  submissions: SUPABASE_URL + "/functions/v1/submission-api",
   staff: SUPABASE_URL + "/functions/v1/staff-api",
   admin: SUPABASE_URL + "/functions/v1/admin-api"
 };
@@ -461,6 +483,7 @@ async function showView(name){
   if(name==="rankings") loadLevels();
   if(name==="creators" || name==="players") loadCommunity();
   if(name==="changes") loadChanges();
+  if(name==="submit") loadSubmit();
   if(name==="staff") loadStaff();
   if(name==="admin") loadAdmin();
   if(name==="account") loadAccount();
@@ -541,6 +564,69 @@ function personCard(p,role){
     ? `<div class="person-sub" style="margin-top:5px">${escapeHTML(p.youtube_description)}</div>` : "";
   return `<article class="person"><div class="person-top"><div class="avatar">${avatarHTML}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div>${profileDesc}</div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}${wrHolder}${youtube}</article>`;
 }
+
+async function loadSubmit(){
+  const gate=$("submitGate");
+  const form=$("submitForm");
+  const mine=$("mySubmissions");
+  const s=await session();
+  if(!s){
+    gate.textContent="Sign in to submit a level.";
+    form.style.display="none";
+    mine.innerHTML="";
+    return;
+  }
+  gate.textContent="Submit a level for staff review.";
+  form.style.display="block";
+  try{
+    const r=await fetch(API.submissions,{headers:{Authorization:"Bearer "+s.access_token},cache:"no-store"});
+    const j=await r.json();
+    const rows=j?.data||[];
+    mine.innerHTML=rows.length
+      ? "<div class='muted'><strong>Your submissions</strong></div>"+rows.map(x=>"<div class='admin-card' style='margin-top:8px'><b>"+escapeHTML(x.level_name)+"</b><div class='person-sub'>"+escapeHTML(x.status)+"</div></div>").join("")
+      : "";
+  }catch(e){
+    mine.innerHTML="";
+  }
+}
+
+$("submitLevelBtn").onclick=async()=>{
+  const s=await session();
+  if(!s){toast("Sign in first.");return}
+  const payload={
+    gd_level_id:Number($("submitGD").value),
+    level_name:$("submitName").value.trim(),
+    creator:$("submitCreator").value.trim(),
+    verification_url:$("submitVideo").value.trim(),
+    notes:$("submitNotes").value.trim()
+  };
+  if(!Number.isInteger(payload.gd_level_id)||payload.gd_level_id<0||!payload.level_name||!payload.creator||!payload.verification_url){
+    $("submitState").textContent="GD ID, level name, creator and verification URL are required.";
+    return;
+  }
+  $("submitState").textContent="Submitting…";
+  try{
+    const r=await fetch(API.submissions,{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},
+      body:JSON.stringify(payload)
+    });
+    const j=await r.json();
+    if(!r.ok){
+      $("submitState").textContent=j?.data?.error||j?.message||"Submission failed.";
+      return;
+    }
+    $("submitState").textContent="Submitted for staff review.";
+    $("submitGD").value="";
+    $("submitName").value="";
+    $("submitCreator").value="";
+    $("submitVideo").value="";
+    $("submitNotes").value="";
+    loadSubmit();
+  }catch(e){
+    $("submitState").textContent="Submission request failed.";
+  }
+};
 
 let __changesPromise=null;
 async function loadChanges(){
@@ -1087,7 +1173,7 @@ async function loadAccount(){
 }
 
 const startHash=(location.hash||"#rankings").slice(1);
-const initialView=["rankings","creators","players","changes","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
+const initialView=["rankings","creators","players","changes","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
 refreshAuth();
 </script>
