@@ -761,7 +761,14 @@ document.querySelectorAll(".video-lock").forEach(el=>{
 });
 const videoCloseButton=$("videoClose");
 if(videoCloseButton){
+  const closeNow=e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    closeVideo();
+  };
   videoCloseButton.onclick=closeVideo;
+  videoCloseButton.addEventListener("pointerup",closeNow,{capture:true});
+  videoCloseButton.addEventListener("touchend",closeNow,{capture:true});
 }
 const videoPauseButton=$("videoPause");
 if(videoPauseButton){
@@ -781,10 +788,6 @@ if(videoPauseButton){
     }catch{}
   };
 }
-$("videoClose").onclick=null;
-$("videoClose").addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();closeVideo();},{capture:true});
-$("videoClose").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();closeVideo();},{capture:true});
-$("videoClose").addEventListener("touchend",e=>{e.preventDefault();e.stopPropagation();closeVideo();},{capture:true});
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
 async function showView(name){
