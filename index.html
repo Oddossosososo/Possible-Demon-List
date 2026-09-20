@@ -1188,10 +1188,12 @@ $("authBtn").onclick=async()=>{
   if(s){await sb.auth.signOut(); toast("Signed out."); await refreshAuth(); return;}
   openLogin();
 };
-sb.auth.onAuthStateChange(()=>{
-  __sessionCache=null;
-  __sessionCacheAt=0;
-  refreshAuth();
+sb.auth.onAuthStateChange((event,authSession)=>{
+  // Do not call Supabase queries directly inside the auth callback.
+  // Supabase can still be updating its session storage at this point.
+  __sessionCache=authSession||null;
+  __sessionCacheAt=Date.now();
+  setTimeout(()=>refreshAuth(),0);
 });
 
 $("submitStaff").onclick=async()=>{
