@@ -1200,10 +1200,12 @@ function renderAdminTab(){
             const p=stored.get(name.toLowerCase());
             const handle=String(p?.youtube_handle||"").trim() ||
               ((String(p?.youtube_url||"").match(/youtube\.com\/@([^/?#]+)/i)||[])[1] ? "@"+String(p.youtube_url).match(/youtube\.com\/@([^/?#]+)/i)[1] : "");
+            const channel=String(p?.youtube_channel_id||"").trim();
+            const label=handle || channel || (p?.youtube_url ? "YouTube linked" : "");
             return `<div class="admin-row">
               <div>
                 <b>${escapeHTML(name)}</b>
-                <div class="person-sub">${handle ? "YouTube · "+escapeHTML(handle) : "No @handle set"}</div>
+                <div class="person-sub">${label ? "YouTube · "+escapeHTML(label) : "No YouTube profile set"}</div>
               </div>
               <div class="mini-actions">
                 <button class="mini ${handle?"success":""}" data-edit-creator="${escapeHTML(name)}">Edit Profile</button>
@@ -1334,7 +1336,10 @@ window.editCreatorProfile=async(username)=>{
   const raw=String(result.youtube||"").trim();
   let handle="",youtubeUrl="",channelId="";
   if(raw){
-    if(/^@?[A-Za-z0-9._-]{2,30}$/.test(raw)){
+    if(/^UC[A-Za-z0-9_-]+$/.test(raw)){
+      channelId=raw;
+      youtubeUrl="https://www.youtube.com/channel/"+channelId;
+    }else if(/^@?[A-Za-z0-9._-]{2,30}$/.test(raw)){
       handle=raw.startsWith("@")?raw:"@"+raw;
       youtubeUrl="https://www.youtube.com/"+handle;
     }else{
