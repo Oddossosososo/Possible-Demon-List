@@ -1182,8 +1182,9 @@ function renderAdminTab(){
     const stored=new Map((d.creators||[]).map(x=>[String(x.username||"").trim().toLowerCase(),x]));
     const names=new Map();
     (d.levels||[]).forEach(x=>{
-      const name=String(x.creator||"").trim();
-      if(name) names.set(name.toLowerCase(),name);
+      String(x.creator||"").split(",").map(v=>v.trim()).filter(Boolean).forEach(name=>{
+        names.set(name.toLowerCase(),name);
+      });
     });
     (d.creators||[]).forEach(x=>{
       const name=String(x.username||"").trim();
