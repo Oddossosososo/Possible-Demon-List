@@ -187,7 +187,7 @@
     </section>
 
     <section class="view" id="view-creators">
-      <div class="section-head"><div><h2>Creator List</h2><p>Verified creators in the Possible community.</p></div></div>
+      <div class="section-head"><div><h2>Creator List</h2><p>Automatically generated from creators on Possible levels.</p></div></div>
       <div id="creators" class="grid"><div class="empty">Loading creators…</div></div>
     </section>
 
@@ -495,8 +495,15 @@ async function loadCommunity(){
   return __communityPromise;
 }
 function personCard(p,role){
-  const sub=role==="Player" && p.primary_icon_type ? `${p.primary_icon_type.toUpperCase()} #${p.primary_icon_id||1}` : role;
-  return `<article class="person"><div class="person-top"><div class="avatar">${escapeHTML((p.username||"?").slice(0,1).toUpperCase())}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div></div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}<div class="tag">VERIFIED ${role.toUpperCase()}</div></article>`;
+  let sub=role==="Player" && p.primary_icon_type ? `${p.primary_icon_type.toUpperCase()} #${p.primary_icon_id||1}` : role;
+  if(role==="Creator"){
+    const count=Number(p.level_count||0);
+    sub=count+` level${count===1?"":"s"} on Possible`;
+  }
+  const levelNames=role==="Creator" && Array.isArray(p.levels) && p.levels.length
+    ? `<div class="person-bio">${escapeHTML(p.levels.map(x=>x.name).join(" • "))}</div>` : "";
+  const tag=role==="Creator" && p.automatic ? "AUTOMATIC CREATOR" : `VERIFIED ${role.toUpperCase()}`;
+  return `<article class="person"><div class="person-top"><div class="avatar">${escapeHTML((p.username||"?").slice(0,1).toUpperCase())}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div></div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}<div class="tag">${tag}</div></article>`;
 }
 
 let __changesPromise=null;
@@ -953,7 +960,7 @@ window.createLevel=async()=>{
 };
 
 const channel=sb.channel("possible-live")
-  .on("postgres_changes",{event:"*",schema:"public",table:"levels"},async()=>{await loadLevels();await loadChanges();if(await checkAdmin(await session())) await loadAdmin();toast("Rankings updated live.");})
+  .on("postgres_changes",{event:"*",schema:"public",table:"levels"},async()=>{await Promise.all([loadLevels(),loadChanges(),loadCommunity()]);if(await checkAdmin(await session())) await loadAdmin();toast("Rankings and creators updated live.");})
   .on("postgres_changes",{event:"*",schema:"public",table:"list_changes"},()=>loadChanges())
   .on("postgres_changes",{event:"*",schema:"public",table:"creators"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"players"},()=>loadCommunity())
