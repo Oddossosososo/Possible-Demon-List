@@ -80,6 +80,12 @@
     .person-bio{color:#9099ab;font-size:13px;line-height:1.5;margin-top:13px}
     .tag{display:inline-flex;padding:6px 9px;border-radius:999px;background:#8190ff12;border:1px solid #8190ff29;color:#a9b1ff;
       font-size:11px;font-weight:900;margin-top:12px}
+    .wr-holder{margin-top:13px;padding:10px 11px;border:1px solid #6de0a526;border-radius:14px;background:#6de0a508}
+    .wr-holder-title{font-size:10px;font-weight:1000;letter-spacing:1.5px;color:#8ce9bc;margin-bottom:7px}
+    .wr-holder-row{display:flex;justify-content:space-between;gap:10px;color:#b8c2d5;font-size:12px;line-height:1.4}
+    .wr-holder-row+.wr-holder-row{margin-top:5px}
+    .wr-holder-level{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .wr-holder-record{color:#8ce9bc;font-weight:900;white-space:nowrap}
     .change{display:flex;gap:12px;align-items:flex-start;padding:15px 17px;border:1px solid var(--line);
       border-radius:20px;background:#ffffff04}
     .change-dot{width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--accent);flex:none}
@@ -517,8 +523,13 @@ function personCard(p,role){
     const count=Number(p.level_count||0);
     sub=count+` WR level${count===1?"":"s"} on Possible`;
   }
-  const levelNames=(role==="Creator" || role==="Player") && Array.isArray(p.levels) && p.levels.length
+  const levelNames=role==="Creator" && Array.isArray(p.levels) && p.levels.length
     ? `<div class="person-bio">${escapeHTML(p.levels.map(x=>x.name).join(" • "))}</div>` : "";
+  const wrHolder=role==="Player" && Array.isArray(p.wrs) && p.wrs.length
+    ? `<div class="wr-holder">
+        <div class="wr-holder-title">WR HOLDER</div>
+        ${p.wrs.map(x=>`<div class="wr-holder-row"><span class="wr-holder-level">${escapeHTML(x.level_name)}</span><span class="wr-holder-record">${escapeHTML(x.record||x.current_wr||"WR")}</span></div>`).join("")}
+      </div>` : "";
   const avatar=p.avatar_url||youtubeChannelAvatar(p.youtube_url);
   const avatarHTML=avatar
     ? `<img src="${escapeHTML(avatar)}" alt="${escapeHTML(p.username||role)} profile picture" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" onerror="this.parentElement.textContent='${escapeHTML((p.username||"?").slice(0,1).toUpperCase())}'">`
@@ -528,7 +539,7 @@ function personCard(p,role){
     : "";
   const profileDesc=p.youtube_description && role==="Creator"
     ? `<div class="person-sub" style="margin-top:5px">${escapeHTML(p.youtube_description)}</div>` : "";
-  return `<article class="person"><div class="person-top"><div class="avatar">${avatarHTML}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div>${profileDesc}</div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}${youtube}</article>`;
+  return `<article class="person"><div class="person-top"><div class="avatar">${avatarHTML}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div>${profileDesc}</div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}${wrHolder}${youtube}</article>`;
 }
 
 let __changesPromise=null;
