@@ -507,7 +507,7 @@ function personCard(p,role){
     : "";
   const profileDesc=p.youtube_description && role==="Creator"
     ? `<div class="person-sub" style="margin-top:5px">${escapeHTML(p.youtube_description)}</div>` : "";
-  const tag=role==="Creator" && p.automatic ? "AUTOMATIC CREATOR" : `VERIFIED ${role.toUpperCase()}`;
+  const tag=role==="Creator" ? "CREATOR PROFILE" : `VERIFIED ${role.toUpperCase()}`;
   return `<article class="person"><div class="person-top"><div class="avatar">${escapeHTML((p.username||"?").slice(0,1).toUpperCase())}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div>${profileDesc}</div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}<div class="tag">${tag}</div>${youtube}</article>`;
 }
 
