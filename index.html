@@ -187,7 +187,13 @@
       filter:saturate(1.12) brightness(1.04);transform:translateY(-1px);
     }
     @keyframes fpScan{from{transform:translateY(0)}to{transform:translateY(4px)}}
-    @keyframes fpPulse{from{opacity:.35;transform:scale(.995)}to{opacity:.75;transform:scale(1.005)}}</style>
+    @keyframes fpPulse{from{opacity:.35;transform:scale(.995)}to{opacity:.75;transform:scale(1.005)}}
+    .login-modal{position:fixed;inset:0;z-index:1000;display:none;place-items:center;background:#0009;backdrop-filter:blur(10px);padding:20px}
+    .login-modal.show{display:grid}.login-box{width:min(420px,100%);padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:var(--shadow)}
+    .login-box h2{margin:0 0 8px}.login-box p{color:var(--muted);font-size:13px}.login-box label{display:block;color:#aeb7ca;font-size:12px;font-weight:800;margin:14px 0 6px}
+    .login-box input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#ffffff08;color:var(--text);outline:none}
+    .login-actions{display:flex;gap:8px;margin-top:16px}.login-actions button{flex:1}.login-close{float:right;border:0;background:none;color:#8993a8;font-size:22px}
+</style>
 </head>
 <body>
 <div class="app">
@@ -436,6 +442,20 @@
       <button class="secondary" id="checkVerify">Verify code</button>
     </div>
     <div id="verifyState" class="muted" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<div class="login-modal" id="loginModal" aria-hidden="true">
+  <div class="login-box">
+    <button class="login-close" id="loginClose" aria-label="Close">×</button>
+    <h2>Sign in to Possible</h2>
+    <p>Use your Possible account to access account features.</p>
+    <label for="loginEmail">Email</label>
+    <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="loginPassword">Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <div class="login-actions"><button class="secondary" id="loginCancel">Cancel</button><button class="primary" id="loginSubmit">Sign In</button></div>
+    <div id="loginState" class="muted" style="margin-top:12px"></div>
   </div>
 </div>
 
@@ -973,22 +993,33 @@ async function createAccount(){
   refreshAuth();
 }
 $("createBtn").onclick=createAccount;
-$("authBtn").onclick=async()=>{
-  const s=await session();
-  if(s){await sb.auth.signOut(); toast("Signed out."); refreshAuth(); return;}
-  const email=prompt("Possible email:");
-  const password=prompt("Password:");
-  if(!email||!password)return;
+function openLogin(){
+  $("loginState").textContent="";
+  $("loginModal").classList.add("show"); $("loginModal").setAttribute("aria-hidden","false");
+  setTimeout(()=>$("loginEmail").focus(),0);
+}
+function closeLogin(){ $("loginModal").classList.remove("show"); $("loginModal").setAttribute("aria-hidden","true"); }
+$("loginClose").onclick=closeLogin; $("loginCancel").onclick=closeLogin;
+$("loginModal").addEventListener("click",e=>{if(e.target.id==="loginModal")closeLogin()});
+$("loginSubmit").onclick=async()=>{
+  const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
+  if(!email||!password){$("loginState").textContent="Enter your email and password.";return;}
+  $("loginState").textContent="Signing in…"; $("loginSubmit").disabled=true;
   const {data,error}=await sb.auth.signInWithPassword({email,password});
+  $("loginSubmit").disabled=false;
   if(error){
-    if(/confirm|verified|verify/i.test(error.message)) openVerifyModal(email);
-    else toast(error.message);
+    if(/confirm|verified|verify/i.test(error.message)){closeLogin();openVerifyModal(email)}
+    else $("loginState").textContent=error.message;
     return;
   }
-  const current=await session();
-  await claimOwnerIfAvailable(current);
-  toast("Signed in.");
-  refreshAuth();
+  __sessionCache=data.session||null; __sessionCacheAt=Date.now();
+  await claimOwnerIfAvailable(data.session);
+  closeLogin(); toast("Signed in."); await refreshAuth();
+};
+$("authBtn").onclick=async()=>{
+  const s=await session();
+  if(s){await sb.auth.signOut(); toast("Signed out."); await refreshAuth(); return;}
+  openLogin();
 };
 sb.auth.onAuthStateChange(()=>{
   __sessionCache=null;
