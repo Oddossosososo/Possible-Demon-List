@@ -167,7 +167,28 @@
     .footer{text-align:center;color:#596277;font-size:12px;padding:20px 0 50px}
     @media(max-width:820px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-grid{grid-template-columns:1fr}}
     @media(max-width:650px){.nav-links{display:none}.form-grid,.grid{grid-template-columns:1fr}.level{padding:12px 14px}.rank{width:48px;flex:0 0 48px;font-size:20px}.status{display:none}.hero{padding-top:55px}h1{letter-spacing:-3px}}
-  </style>
+  
+    /* Frame-perfect visual mode */
+    body.fp360::before{
+      content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;
+      background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(255,255,255,.018) 4px);
+      mix-blend-mode:screen;opacity:.7;animation:fpScan .18s linear infinite;
+    }
+    body.fp360::after{
+      content:"";position:fixed;inset:-10%;pointer-events:none;z-index:9997;
+      background:radial-gradient(circle at 50% 50%,rgba(130,170,255,.07),transparent 48%);
+      animation:fpPulse .9s ease-in-out infinite alternate;
+    }
+    body.fp360 .level,body.fp360 .panel,body.fp360 .hero-card{
+      box-shadow:0 0 0 1px rgba(150,190,255,.12),0 10px 34px #0005,0 0 26px rgba(120,170,255,.08);
+      will-change:transform,filter;
+    }
+    body.fp360 .level:hover,body.fp360 .panel:hover,body.fp360 .hero-card:hover{
+      filter:saturate(1.12) brightness(1.04);transform:translateY(-1px);
+    }
+    @keyframes fpScan{from{transform:translateY(0)}to{transform:translateY(4px)}}
+    @keyframes fpPulse{from{opacity:.35;transform:scale(.995)}to{opacity:.75;transform:scale(1.005)}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1428,6 +1449,34 @@ const startHash=(location.hash||"#rankings").slice(1);
 const initialView=["rankings","creators","players","changes","time-machine","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
 refreshAuth();
+
+/* Secret 240 FPS frame-perfect mode: type Iwannadoaframeperfect anywhere. */
+(()=>{
+  const secret="iwannadoaframeperfect";
+  let typed="",active=false,fpTimer=0,fpFrames=0;
+  const tick=()=>{
+    if(!active)return;
+    fpFrames++;
+    fpTimer=setTimeout(tick,1000/240);
+  };
+  const enable=()=>{
+    if(active)return;
+    active=true;
+    document.body.classList.add("fp360");
+    fpFrames=0;
+    tick();
+    // Keep the browser's real render loop separate from the 240 Hz simulation clock.
+    const render=()=>{ if(active) requestAnimationFrame(render); };
+    requestAnimationFrame(render);
+  };
+  addEventListener("keydown",e=>{
+    if(e.ctrlKey||e.altKey||e.metaKey)return;
+    const k=(e.key||"").toLowerCase();
+    if(k.length!==1)return;
+    typed=(typed+k).slice(-secret.length);
+    if(typed===secret)enable();
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
