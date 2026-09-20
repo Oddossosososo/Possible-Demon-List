@@ -356,8 +356,13 @@
       </div>
       <button class="dialog-close" id="videoClose" type="button">✕</button>
     </div>
-    <div class="video-frame-wrap">
+    <div class="video-frame-wrap" style="position:relative">
       <iframe id="videoFrame" title="Possible level video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      <button class="mini" id="videoPause" type="button"
+        style="position:absolute;left:14px;bottom:14px;z-index:3;min-width:78px;background:#080b11ee;border-color:#ffffff24;color:#fff">
+        ▶ Play
+      </button>
+      <div aria-hidden="true" style="position:absolute;inset:0;z-index:2;pointer-events:auto;background:transparent"></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #ffffff0b">
       <span id="videoTimeLabel" class="person-sub" style="min-width:76px;text-align:center">0:00 / 0:00</span>
@@ -514,6 +519,9 @@ function updateVideoTimeUI(){
   try{
     const current=Number(ytPlayer.getCurrentTime?.()||0);
     const duration=Number(ytPlayer.getDuration?.()||0);
+    const state=Number(ytPlayer.getPlayerState?.()||-1);
+    const pause=$("videoPause");
+    if(pause) pause.textContent=state===1 ? "❚❚ Pause" : "▶ Play";
     const seek=$("videoSeek");
     const label=$("videoTimeLabel");
     if(seek && duration>0){
@@ -575,6 +583,14 @@ function closeVideo(){
 $("videoSeek").oninput=()=>{
   if(!ytPlayer)return;
   try{ytPlayer.seekTo(Number($("videoSeek").value)||0,true);}catch{}
+};
+$("videoPause").onclick=()=>{
+  if(!ytPlayer)return;
+  try{
+    const state=Number(ytPlayer.getPlayerState?.()||-1);
+    if(state===1) ytPlayer.pauseVideo();
+    else ytPlayer.playVideo();
+  }catch{}
 };
 $("videoClose").onclick=closeVideo;
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
