@@ -281,6 +281,7 @@
           <button class="admin-menu-btn" data-admin-tab="levels">Levels</button>
           <button class="admin-menu-btn" data-admin-tab="submissions">Submissions</button>
           <button class="admin-menu-btn" data-admin-tab="profiles">Profiles</button>
+          <button class="admin-menu-btn" data-admin-tab="creators">Creators</button>
         </aside>
         <div class="admin-content" id="adminContent"><div class="empty">Checking access…</div></div>
       </div>
@@ -832,6 +833,43 @@ function renderAdminTab(){
         </div>`).join("")||'<div class="empty">No profiles.</div>'}
       </div>`;
   }
+
+  if(adminState.tab==="creators"){
+    const stored=new Map((d.creators||[]).map(x=>[String(x.username||"").trim().toLowerCase(),x]));
+    const names=new Map();
+    (d.levels||[]).forEach(x=>{
+      const name=String(x.creator||"").trim();
+      if(name) names.set(name.toLowerCase(),name);
+    });
+    (d.creators||[]).forEach(x=>{
+      const name=String(x.username||"").trim();
+      if(name) names.set(name.toLowerCase(),name);
+    });
+
+    const rows=[...names.values()].sort((a,b)=>a.localeCompare(b));
+    box.innerHTML=`
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div><h3 style="margin:0">Creator Profiles</h3><div class="person-sub">Profiles are generated from levels. Link an exact YouTube channel once to keep the avatar trusted.</div></div>
+        </div>
+        <div style="margin-top:12px">
+          ${rows.map(name=>{
+            const p=stored.get(name.toLowerCase());
+            const linked=!!p?.youtube_channel_id;
+            return `<div class="admin-row">
+              <div>
+                <b>${escapeHTML(name)}</b>
+                <div class="person-sub">${linked ? "YouTube linked · "+escapeHTML(p.youtube_handle||p.youtube_channel_id) : "No trusted YouTube channel linked"}</div>
+              </div>
+              <div class="mini-actions">
+                <button class="mini ${linked?"success":""}" onclick="linkCreatorYouTube(${JSON.stringify(name)})">${linked?"Change YouTube":"Link YouTube"}</button>
+              </div>
+            </div>`;
+          }).join("") || '<div class="empty">No creators yet.</div>'}
+        </div>
+      </div>`;
+    return;
+  }
 }
 
 function adminOpenTab(tab){
@@ -857,6 +895,41 @@ async function loadAdmin(){
 window.reviewSubmission=async(id,status)=>{
   const j=await adminPost({action:"review_submission",id,status});
   if(j){toast("Submission updated."); adminState.data=null; loadAdmin();}
+};
+
+window.linkCreatorYouTube=async(username)=>{
+  const result=await openAdminDialog({
+    title:"Link YouTube",
+    subtitle:"Link an exact YouTube channel to "+username+". Use a /channel/UC... URL so another account cannot hijack the profile.",
+    confirmText:"Link channel",
+    fields:[
+      {key:"youtube_url",label:"Exact YouTube channel URL",placeholder:"https://www.youtube.com/channel/UC...",wide:true},
+      {key:"youtube_handle",label:"Channel handle",placeholder:"@example"}
+    ]
+  });
+  if(!result)return;
+
+  const url=String(result.youtube_url||"").trim();
+  const match=url.match(/^https?:\\/\\/(?:www\\.)?youtube\\.com\\/channel\\/(UC[A-Za-z0-9_-]{20,})(?:[/?#].*)?$/i);
+  if(!match){
+    toast("Use the exact YouTube /channel/UC... URL.");
+    return;
+  }
+
+  const channelId=match[1];
+  const j=await adminPost({
+    action:"link_creator_youtube",
+    username,
+    youtube_url:url,
+    youtube_channel_id:channelId,
+    youtube_handle:String(result.youtube_handle||"").trim()
+  });
+  if(j){
+    toast("YouTube profile linked.");
+    adminState.data=null;
+    loadAdmin();
+    loadCommunity();
+  }
 };
 
 window.moderateProfile=async(id,status)=>{
