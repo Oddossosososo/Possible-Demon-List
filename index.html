@@ -146,7 +146,9 @@
       width:100%;height:100%;display:block;border:0;
       pointer-events:auto;
     }
-    .video-seek{padding:12px 16px 14px;border-top:1px solid #ffffff0b;background:#0b0f17}
+    .video-start-hint{position:absolute;inset:0;z-index:5;border:0;background:#0006;color:#fff;font-weight:900;font-size:15px;letter-spacing:.2px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-shadow:0 2px 8px #000}
+.video-start-hint.hidden{display:none}
+.video-seek{padding:12px 16px 14px;border-top:1px solid #ffffff0b;background:#0b0f17}
     .video-seek-row{display:flex;align-items:center;gap:10px}
     .video-seek input[type="range"]{flex:1;width:auto;height:5px;padding:0;accent-color:var(--accent);cursor:pointer}
     .video-time{min-width:92px;text-align:right;color:#8993a8;font-size:11px;font-variant-numeric:tabular-nums;font-weight:800}
@@ -431,6 +433,7 @@
       <iframe id="videoFrame" title="Possible level video"
         allow="autoplay; encrypted-media; picture-in-picture"
         allowfullscreen></iframe>
+      <button class="video-start-hint" id="videoStartHint" type="button">🖱️ Click / 👆 Tap the video to start</button>
       <div class="video-lock video-lock-top" aria-hidden="true"></div>
       <div class="video-lock video-lock-left" aria-hidden="true"></div>
       <div class="video-lock video-lock-bottom-mid" aria-hidden="true"></div>
@@ -610,19 +613,92 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
+let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false;
+
+function formatVideoTime(v){
+  const s=Math.max(0,Math.floor(Number(v)||0));
+  const m=Math.floor(s/60), sec=s%60;
+  return m+":"+String(sec).padStart(2,"0");
+}
+function updateVideoSeek(){
+  if(!videoPlayer || typeof videoPlayer.getDuration!=="function")return;
+  try{
+    const d=Number(videoPlayer.getDuration())||0, t=Number(videoPlayer.getCurrentTime())||0;
+    $("videoSeek").max=d||100;
+    $("videoSeek").value=Math.min(t,d||100);
+    $("videoTime").textContent=formatVideoTime(t)+" / "+formatVideoTime(d);
+  }catch{}
+}
+function setupVideoPlayer(id){
+  if(typeof YT==="undefined" || !YT.Player){videoPendingId=id;return}
+  videoPendingId="";
+  if(videoPlayer){try{videoPlayer.destroy()}catch{}}
+  videoPlayer=new YT.Player("videoFrame",{
+    videoId:id,
+    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1},
+    events:{
+      onReady:()=>{
+        videoStarted=false;
+        $("videoStartHint").classList.remove("hidden");
+        updateVideoSeek();
+        clearInterval(videoTicker);
+        videoTicker=setInterval(updateVideoSeek,250);
+      },
+      onStateChange:e=>{
+        updateVideoSeek();
+        if(e.data===YT.PlayerState.PLAYING){
+          videoStarted=true;
+          $("videoStartHint").classList.add("hidden");
+        }else if(e.data===YT.PlayerState.PAUSED || e.data===YT.PlayerState.ENDED){
+          if(!videoStarted) $("videoStartHint").classList.remove("hidden");
+        }
+      },
+      onError:e=>{
+        console.error("Possible video error:",e.data);
+        $("videoStartHint").textContent="YouTube couldn't play this video";
+      }
+    }
+  });
+}
 function watchLevelVideo(url,title){
   const id=youtubeId(url);
   if(!id){toast("No YouTube video is attached to this level.");return}
   $("videoTitle").textContent=title||"Level video";
-  $("videoFrame").src="https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1";
+  $("videoSeek").value=0;
+  $("videoTime").textContent="0:00 / 0:00";
+  $("videoStartHint").textContent="🖱️ Click / 👆 Tap the video to start";
+  $("videoStartHint").classList.remove("hidden");
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
+  setupVideoPlayer(id);
 }
 function closeVideo(){
+  clearInterval(videoTicker);
+  videoTicker=null;
+  if(videoPlayer){try{videoPlayer.destroy()}catch{}}
+  videoPlayer=null;
+  videoPendingId="";
   $("videoFrame").src="";
+  $("videoSeek").value=0;
+  $("videoTime").textContent="0:00 / 0:00";
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
 }
+window.onYouTubeIframeAPIReady=()=>{
+  if(videoPendingId)setupVideoPlayer(videoPendingId);
+};
+$("videoStartHint").onclick=()=>{
+  if(videoPlayer && typeof videoPlayer.playVideo==="function"){
+    videoPlayer.playVideo();
+    $("videoStartHint").classList.add("hidden");
+  }
+};
+$("videoSeek").addEventListener("input",e=>{
+  if(videoPlayer && typeof videoPlayer.seekTo==="function"){
+    videoPlayer.seekTo(Number(e.target.value)||0,true);
+    updateVideoSeek();
+  }
+});
 document.querySelectorAll(".video-lock").forEach(el=>{
   const block=e=>{e.preventDefault();e.stopPropagation()};
   el.addEventListener("pointerdown",block);
