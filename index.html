@@ -215,7 +215,7 @@
         <div id="submitGate" class="muted">Checking account…</div>
         <div id="submitForm" style="display:none;margin-top:14px">
           <div class="form-grid">
-            <div><label>Geometry Dash ID</label><input id="submitGD" type="number" min="0" placeholder="12345678"></div>
+            <div><label>Geometry Dash ID</label><input id="submitGD" type="number" min="0" placeholder="Auto-filled" readonly style="opacity:.8"></div>
             <div><label>Level name</label><input id="submitName" placeholder="Level name"></div>
             <div><label>Creator</label><input id="submitCreator" placeholder="Creator"></div>
             <div><label>Verification / Showcase URL</label><input id="submitVideo" placeholder="https://youtube.com/watch?v=..."></div>
@@ -223,6 +223,7 @@
           <div style="margin-top:12px"><label>Notes</label><textarea id="submitNotes" placeholder="Anything the Possible team should know."></textarea></div>
           <div class="form-actions"><button class="primary" id="submitLevelBtn">Submit Level</button></div>
           <div id="submitState" class="muted" style="margin-top:12px"></div>
+          <div id="submitGDState" class="person-sub" style="margin-top:7px"></div>
         </div>
         <div id="mySubmissions" style="margin-top:18px"></div>
       </div>
@@ -396,6 +397,44 @@ const API = {
 const $ = id => document.getElementById(id);
 const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast = msg => { const x=$("toast"); x.textContent=msg; x.classList.add("show"); clearTimeout(window.__toast); window.__toast=setTimeout(()=>x.classList.remove("show"),3000); };
+
+function debounce(fn,ms=450){
+  let t=0;
+  return (...args)=>{
+    clearTimeout(t);
+    t=setTimeout(()=>fn(...args),ms);
+  };
+}
+async function autoFindGDLevelId(name,creator,idInput,stateEl){
+  const n=String(name?.value||"").trim();
+  const c=String(creator?.value||"").trim();
+  if(!idInput)return;
+  idInput.value="";
+  if(stateEl) stateEl.textContent="";
+  if(n.length<2)return;
+  if(stateEl) stateEl.textContent="Finding Geometry Dash level…";
+  try{
+    const r=await fetch("https://gdbrowser.com/api/search/"+encodeURIComponent(n)+"?type=0&count=20",{cache:"no-store"});
+    if(!r.ok)throw new Error("lookup_failed");
+    const rows=await r.json();
+    const list=Array.isArray(rows)?rows:[];
+    const exact=list.filter(x=>String(x?.name||"").trim().toLowerCase()===n.toLowerCase());
+    const ranked=[...exact,...list.filter(x=>!exact.includes(x))];
+    const creatorMatch=c ? ranked.find(x=>String(x?.author||"").trim().toLowerCase()===c.toLowerCase()) : null;
+    const chosen=creatorMatch||ranked[0];
+    if(!chosen?.id){
+      if(stateEl) stateEl.textContent="Couldn’t find that level automatically.";
+      return;
+    }
+    idInput.value=String(chosen.id);
+    const note=creatorMatch ? "Auto-filled from level + creator." : "Auto-filled from level name.";
+    if(stateEl) stateEl.textContent=note;
+  }catch(e){
+    console.error(e);
+    if(stateEl) stateEl.textContent="Automatic ID lookup failed — try again.";
+  }
+}
+
 
 let __adminDialogResolve=null;
 let __adminDialogFields=[];
@@ -591,6 +630,10 @@ async function loadSubmit(){
   }
 }
 
+const autoSubmitGD=debounce(()=>autoFindGDLevelId($("submitName"),$("submitCreator"),$("submitGD"),$("submitGDState")));
+$("submitName").addEventListener("input",autoSubmitGD);
+$("submitCreator").addEventListener("input",autoSubmitGD);
+
 $("submitLevelBtn").onclick=async()=>{
   const s=await session();
   if(!s){toast("Sign in first.");return}
@@ -602,6 +645,8 @@ $("submitLevelBtn").onclick=async()=>{
     notes:$("submitNotes").value.trim()
   };
   if(!Number.isInteger(payload.gd_level_id)||payload.gd_level_id<0||!payload.level_name||!payload.creator||!payload.verification_url){
+    if(!Number.isInteger(payload.gd_level_id)){ $("submitGDState").textContent="Enter a valid level name/creator so Possible can find the GD ID."; }
+
     $("submitState").textContent="GD ID, level name, creator and verification URL are required.";
     return;
   }
@@ -623,6 +668,7 @@ $("submitLevelBtn").onclick=async()=>{
     $("submitCreator").value="";
     $("submitVideo").value="";
     $("submitNotes").value="";
+    $("submitGDState").textContent="";
     loadSubmit();
   }catch(e){
     $("submitState").textContent="Submission request failed.";
@@ -1217,7 +1263,7 @@ window.createLevel=async()=>{
     subtitle:"Create a new entry for the Possible list.",
     confirmText:"Add level",
     fields:[
-      {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"12345678"},
+      {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"Auto-filled from level name",readonly:true},
       {key:"current_wr",label:"Current WR",placeholder:"Player name / record"},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
@@ -1227,7 +1273,17 @@ window.createLevel=async()=>{
     ]
   });
   if(!result)return;
-  const gd=Number(result.gd);
+  let gd=Number(result.gd);
+  if((!Number.isInteger(gd)||gd<0) && result.name?.trim()){
+    try{
+      const r=await fetch("https://gdbrowser.com/api/search/"+encodeURIComponent(result.name.trim())+"?type=0&count=20",{cache:"no-store"});
+      const rows=await r.json();
+      const list=Array.isArray(rows)?rows:[];
+      const exact=list.filter(x=>String(x?.name||"").trim().toLowerCase()===result.name.trim().toLowerCase());
+      const chosen=(result.creator?.trim() && exact.find(x=>String(x?.author||"").trim().toLowerCase()===result.creator.trim().toLowerCase()))||exact[0]||list[0];
+      gd=Number(chosen?.id);
+    }catch(e){ gd=NaN; }
+  }
   if(!Number.isInteger(gd)||gd<0||!result.name?.trim()||!result.creator?.trim()){
     toast("GD ID, level name and creator are required.");return;
   }
