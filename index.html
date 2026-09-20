@@ -1147,7 +1147,8 @@ async function loadStaff(){
         const jj=await rr.json();
         if(rr.ok&&jj.data?.length) $("myApplications").innerHTML="<div class='muted'><strong>Your applications</strong></div>"+jj.data.map(a=>`<div class="admin-card" style="margin-top:8px"><b>MODERATOR</b> · ${escapeHTML(a.status)}<div class="person-sub">${escapeHTML(a.reason)}</div>${a.reviewer_notes?'<div class="person-sub" style="margin-top:6px">Decision: '+escapeHTML(a.reviewer_notes)+'</div>':''}</div>`).join("");
       }
-      await loadModeratorTools();
+      const canModerate=!!me&&list.some(s=>s.user_id===me.user.id&&["moderator","admin","owner"].includes(s.role));
+      if(canModerate) await loadModeratorTools(); else $("moderatorTools").style.display="none";
     }catch(e){box.innerHTML='<div class="empty">Couldn’t load staff.</div>'; $("staffApplication").style.display="none";}
   })().finally(()=>{__staffPromise=null});
   return __staffPromise;
@@ -1251,7 +1252,7 @@ async function renderStaffAdminTab(tab){
   if(tab==="staff-applications"){
     const d=await staffFetch("applications"); if(!d)return;
     const pending=d.filter(x=>x.status==="pending");
-    box.innerHTML=`<div class="panel"><h3 style="margin-top:0">Staff Applications</h3><p class="muted">${pending.length} pending moderator application${pending.length===1?"":"s"}.</p>${pending.length?pending.map(a=>`<div class="admin-card" style="margin-top:10px"><h3>${escapeHTML(a.possible_username||"Unknown")} <span class="tag">MODERATOR</span></h3><p><b>GD:</b> ${escapeHTML(a.gd_username||"—")}</p><p style="margin-top:8px"><b>Why:</b> ${escapeHTML(a.reason||"—")}</p><p style="margin-top:8px"><b>Good moderator:</b> ${escapeHTML(a.experience||"—")}</p><p style="margin-top:8px"><b>Previous experience:</b> ${escapeHTML(a.discord_username||"Not supplied")}</p><p style="margin-top:8px"><b>Availability:</b> ${escapeHTML(a.availability||"—")}</p><p class="person-sub" style="margin-top:8px">Submitted ${new Date(a.created_at).toLocaleString()}</p><div class="mini-actions" style="margin-top:10px"><button class="mini success" onclick="reviewStaffApplication('${escapeHTML(a.id)}','approved')">Accept</button><button class="mini danger" onclick="reviewStaffApplication('${escapeHTML(a.id)}','rejected')">Reject</button></div></div>`).join(""):'<div class="empty">No pending moderator applications.</div>'}</div>`;
+    box.innerHTML=`<div class="panel"><h3 style="margin-top:0">Staff Applications</h3><p class="muted">${pending.length} pending moderator application${pending.length===1?"":"s"}.</p>${pending.length?pending.map(a=>`<div class="admin-card" style="margin-top:10px"><h3>${escapeHTML(a.possible_username||"Unknown")} <span class="tag">MODERATOR</span></h3><p><b>GD:</b> ${escapeHTML(a.gd_username||"—")}</p><p style="margin-top:8px"><b>Why:</b> ${escapeHTML(a.reason||"—")}</p><p style="margin-top:8px"><b>Moderator experience:</b> ${escapeHTML(a.experience||"—")}</p><p style="margin-top:8px"><b>Availability:</b> ${escapeHTML(a.availability||"—")}</p><p class="person-sub" style="margin-top:8px">Submitted ${new Date(a.created_at).toLocaleString()}</p><div class="mini-actions" style="margin-top:10px"><button class="mini success" onclick="reviewStaffApplication('${escapeHTML(a.id)}','approved')">Accept</button><button class="mini danger" onclick="reviewStaffApplication('${escapeHTML(a.id)}','rejected')">Reject</button></div></div>`).join(""):'<div class="empty">No pending moderator applications.</div>'}</div>`;
     return;
   }
   if(tab==="staff-management"){
