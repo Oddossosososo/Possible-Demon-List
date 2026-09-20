@@ -192,7 +192,7 @@
     </section>
 
     <section class="view" id="view-players">
-      <div class="section-head"><div><h2>Player List</h2><p>Verified Possible players.</p></div></div>
+      <div class="section-head"><div><h2>Player List</h2><p>Automatically generated from current WRs.</p></div></div>
       <div id="players" class="grid"><div class="empty">Loading players…</div></div>
     </section>
 
@@ -513,7 +513,11 @@ function personCard(p,role){
     const count=Number(p.level_count||0);
     sub=count+` level${count===1?"":"s"} on Possible`;
   }
-  const levelNames=role==="Creator" && Array.isArray(p.levels) && p.levels.length
+  if(role==="Player"){
+    const count=Number(p.level_count||0);
+    sub=count+` WR level${count===1?"":"s"} on Possible`;
+  }
+  const levelNames=(role==="Creator" || role==="Player") && Array.isArray(p.levels) && p.levels.length
     ? `<div class="person-bio">${escapeHTML(p.levels.map(x=>x.name).join(" • "))}</div>` : "";
   const avatar=p.avatar_url||youtubeChannelAvatar(p.youtube_url);
   const avatarHTML=avatar
