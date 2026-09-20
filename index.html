@@ -645,13 +645,13 @@ function setupVideoPlayer(id){
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=new YT.Player("videoFrame",{
     videoId:id,
-    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,origin:location.origin},
+    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,origin:location.origin,mute:0},
     events:{
       onReady:()=>{
         videoStarted=false;
         $("videoStartHint").classList.add("hidden");
         try{
-          videoPlayer.mute();
+          videoPlayer.unMute();
           videoPlayer.playVideo();
         }catch(e){console.warn("Possible autoplay:",e)}
         updateVideoSeek();
@@ -660,7 +660,7 @@ function setupVideoPlayer(id){
         videoRetryTimer=setTimeout(()=>{
           try{
             if(videoPlayer && videoPlayer.getPlayerState()!==YT.PlayerState.PLAYING){
-              videoPlayer.mute();
+              videoPlayer.unMute();
               videoPlayer.playVideo();
             }
           }catch{}
