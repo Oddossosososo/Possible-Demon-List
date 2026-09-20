@@ -619,7 +619,7 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false,videoRetryTimer=null;
+let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false;
 
 function formatVideoTime(v){
   const s=Math.max(0,Math.floor(Number(v)||0));
@@ -636,50 +636,35 @@ function updateVideoSeek(){
   }catch{}
 }
 function setupVideoPlayer(id){
-  if(typeof YT==="undefined" || !YT.Player){
-    videoPendingId=id;
-    return;
-  }
+  const frame=$("videoFrame");
+  if(!frame)return;
   videoPendingId="";
-  clearTimeout(videoRetryTimer);
-  if(videoPlayer){try{videoPlayer.destroy()}catch{}}
-  videoPlayer=new YT.Player("videoFrame",{
-    videoId:id,
-    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,origin:location.origin,mute:1},
-    events:{
-      onReady:()=>{
-        videoStarted=false;
-        $("videoStartHint").classList.add("hidden");
-        try{
-          videoPlayer.mute();
-          videoPlayer.playVideo();
-        }catch(e){console.warn("Possible autoplay:",e)}
-        updateVideoSeek();
-        clearInterval(videoTicker);
-        videoTicker=setInterval(updateVideoSeek,250);
-        videoRetryTimer=setTimeout(()=>{
-          try{
-            if(videoPlayer && videoPlayer.getPlayerState()!==YT.PlayerState.PLAYING){
-              videoPlayer.mute();
-              videoPlayer.playVideo();
+  clearInterval(videoTicker);
+  videoStarted=false;
+  const params="autoplay=1&mute=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&modestbranding=1&enablejsapi=1&iv_load_policy=3&origin="+encodeURIComponent(location.origin);
+  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?"+params;
+  frame.setAttribute("allow","autoplay; encrypted-media; picture-in-picture");
+  if(typeof YT!=="undefined" && YT.Player){
+    setTimeout(()=>{
+      try{
+        videoPlayer=new YT.Player("videoFrame",{
+          events:{
+            onReady:()=>{
+              try{videoPlayer.mute();videoPlayer.playVideo()}catch{}
+              videoStarted=true;
+              updateVideoSeek();
+              clearInterval(videoTicker);
+              videoTicker=setInterval(updateVideoSeek,250);
+            },
+            onStateChange:e=>{
+              updateVideoSeek();
+              if(e.data===YT.PlayerState.PLAYING)videoStarted=true;
             }
-          }catch{}
-        },700);
-      },
-      onStateChange:e=>{
-        updateVideoSeek();
-        if(e.data===YT.PlayerState.PLAYING){
-          videoStarted=true;
-          $("videoStartHint").classList.add("hidden");
-        }
-      },
-      onError:e=>{
-        console.error("Possible video error:",e.data);
-        $("videoStartHint").textContent="YouTube couldn't play this video";
-        $("videoStartHint").classList.remove("hidden");
-      }
-    }
-  });
+          }
+        });
+      }catch(e){console.warn("Possible player API:",e)}
+    },150);
+  }
 }
 function watchLevelVideo(url,title){
   const id=youtubeId(url);
@@ -687,7 +672,6 @@ function watchLevelVideo(url,title){
   $("videoTitle").textContent=title||"Level video";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
-  $("videoStartHint").textContent="";
   $("videoStartHint").classList.add("hidden");
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
@@ -696,24 +680,16 @@ function watchLevelVideo(url,title){
 function closeVideo(){
   clearInterval(videoTicker);
   videoTicker=null;
-  clearTimeout(videoRetryTimer);
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=null;
   videoPendingId="";
-  $("videoFrame").src="";
+  $("videoFrame").src="about:blank";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
 }
-window.onYouTubeIframeAPIReady=()=>{
-  if(videoPendingId)setupVideoPlayer(videoPendingId);
-};
-document.addEventListener("pointerdown",()=>{
-  if(videoPlayer && videoStarted){
-    try{videoPlayer.unMute()}catch{}
-  }
-},{passive:true});
+window.onYouTubeIframeAPIReady=()=>{};
 const videoWrap=$("videoFrame")?.parentElement;
 if(videoWrap){
   const showPointerWarning=()=>{
