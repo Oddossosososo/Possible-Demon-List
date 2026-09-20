@@ -233,6 +233,7 @@
         <div id="tmState" class="muted" style="margin-top:12px">Choose a date to view a recorded ranking snapshot.</div>
       </div>
       <div id="tmRankings" class="cards" style="margin-top:14px"></div>
+      <div class="panel" style="margin-top:14px"><div class="kicker" style="margin-bottom:10px">#1 REIGN RECORD</div><div id="reignRecord" class="muted">Loading #1 reign history…</div></div>
     </section>
 
     <section class="view" id="view-changes">
@@ -761,6 +762,26 @@ async function loadChanges(){
 function labelChange(t){return ({added:"Level added",updated:"Level updated",rank_changed:"Rank changed",beaten:"Level beaten",archived:"Level archived",restored:"Level restored",deleted:"Level removed"})[t]||"List update";}
 
 let __tmReady=false;
+
+async function loadShortestReign(){
+  const out=$("reignRecord"); if(!out)return;
+  try{
+    const r=await fetch(API.changes+"?limit=200&t="+Date.now(),{cache:"no-store"});
+    const j=await r.json(); if(!r.ok)throw new Error(j?.error||"Changelog unavailable");
+    const rows=Array.isArray(j)?j:(j.data||[]), sorted=rows.slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    const active=new Map(), completed=[];
+    for(const x of sorted){
+      const key=String(x.level_id||x.level_name||"").trim().toLowerCase(); if(!key)continue;
+      const oldRank=Number(x.old_rank), newRank=Number(x.new_rank);
+      if(newRank===1&&oldRank!==1)active.set(key,{name:x.level_name||key,creator:x.creator||"Unknown",start:new Date(x.created_at)});
+      if(oldRank===1&&newRank!==1){const start=active.get(key);if(start){completed.push({...start,end:new Date(x.created_at)});active.delete(key);}}
+    }
+    completed.sort((a,b)=>(a.end-a.start)-(b.end-b.start));
+    const format=ms=>{const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return (h?h+"h ":"")+(m?m+"m ":"")+sec+"s"};
+    if(completed.length){const x=completed[0];out.innerHTML="<b>"+escapeHTML(x.name)+"</b> · "+escapeHTML(x.creator)+"<br><span style='font-size:22px;font-weight:1000'>"+format(x.end-x.start)+"</span><br><span class='person-sub'>Shortest completed #1 reign · "+x.start.toLocaleString()+" → "+x.end.toLocaleString()+"</span>";}else out.textContent="No completed #1 reigns are recorded yet.";
+  }catch(e){console.error(e);out.textContent="Couldn’t load #1 reign history.";}
+}
+
 function initTimeMachine(){
   if(__tmReady)return;
   __tmReady=true;
@@ -1387,7 +1408,7 @@ window.createLevel=async()=>{
 
 const channel=sb.channel("possible-live")
   .on("postgres_changes",{event:"*",schema:"public",table:"levels"},async()=>{await Promise.all([loadLevels(),loadChanges(),loadCommunity()]);if(await checkAdmin(await session())) await loadAdmin();toast("Rankings and creators updated live.");})
-  .on("postgres_changes",{event:"*",schema:"public",table:"list_changes"},()=>loadChanges())
+  .on("postgres_changes",{event:"*",schema:"public",table:"list_changes"},()=>{loadChanges();loadShortestReign();})
   .on("postgres_changes",{event:"*",schema:"public",table:"creators"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"players"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"staff_members"},()=>loadStaff())
