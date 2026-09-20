@@ -619,7 +619,7 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false;
+let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false,videoCutoff=0;
 
 function formatVideoTime(v){
   const s=Math.max(0,Math.floor(Number(v)||0));
@@ -629,10 +629,15 @@ function formatVideoTime(v){
 function updateVideoSeek(){
   if(!videoPlayer || typeof videoPlayer.getDuration!=="function")return;
   try{
-    const d=Number(videoPlayer.getDuration())||0, t=Number(videoPlayer.getCurrentTime())||0;
-    $("videoSeek").max=d||100;
-    $("videoSeek").value=Math.min(t,d||100);
-    $("videoTime").textContent=formatVideoTime(t)+" / "+formatVideoTime(d);
+    const d=Number(videoPlayer.getDuration())||0;
+    const limit=videoCutoff>0 ? Math.min(videoCutoff,d||videoCutoff) : d;
+    const t=Math.min(Number(videoPlayer.getCurrentTime())||0,limit||0);
+    if(videoCutoff>0 && t>=videoCutoff){
+      try{videoPlayer.pauseVideo();videoPlayer.seekTo(videoCutoff,true)}catch{}
+    }
+    $("videoSeek").max=limit||100;
+    $("videoSeek").value=Math.min(t,limit||100);
+    $("videoTime").textContent=formatVideoTime(t)+" / "+formatVideoTime(limit||d);
   }catch{}
 }
 function setupVideoPlayer(id){
@@ -666,9 +671,10 @@ function setupVideoPlayer(id){
     },150);
   }
 }
-function watchLevelVideo(url,title){
+function watchLevelVideo(url,title,rank){
   const id=youtubeId(url);
   if(!id){toast("No YouTube video is attached to this level.");return}
+  videoCutoff=Number(rank)===1 ? 67 : 0;
   $("videoTitle").textContent=title||"Level video";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
@@ -683,6 +689,7 @@ function closeVideo(){
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=null;
   videoPendingId="";
+  videoCutoff=0;
   $("videoFrame").src="about:blank";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
@@ -696,7 +703,8 @@ if(videoWrap){
 }
 $("videoSeek").addEventListener("input",e=>{
   if(videoPlayer && typeof videoPlayer.seekTo==="function"){
-    videoPlayer.seekTo(Number(e.target.value)||0,true);
+    const limit=videoCutoff>0 ? videoCutoff : Number(e.target.max)||0;
+    videoPlayer.seekTo(Math.min(Number(e.target.value)||0,limit),true);
     updateVideoSeek();
   }
 });
@@ -744,7 +752,7 @@ async function loadLevels(){
     $("levelCount").textContent = levels.length + " level" + (levels.length===1?"":"s");
     el.innerHTML = levels.length ? levels.map((l,i)=>`
       <article class="level">
-        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
+        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,Number(this.dataset.rank)||0)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-rank="'+escapeHTML(String(l.current_rank??(i+1)))+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
         <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
         <div class="level-main">
           <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
