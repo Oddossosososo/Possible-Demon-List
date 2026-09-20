@@ -187,13 +187,7 @@
       filter:saturate(1.12) brightness(1.04);transform:translateY(-1px);
     }
     @keyframes fpScan{from{transform:translateY(0)}to{transform:translateY(4px)}}
-    @keyframes fpPulse{from{opacity:.35;transform:scale(.995)}to{opacity:.75;transform:scale(1.005)}}
-
-    .fp-timebar{position:fixed;left:18px;right:18px;bottom:16px;height:6px;border:1px solid rgba(150,190,255,.25);border-radius:999px;background:rgba(10,14,24,.82);box-shadow:0 0 18px rgba(120,170,255,.12);z-index:10000;opacity:0;pointer-events:none;transition:opacity .2s;overflow:hidden}
-    body.fp360 .fp-timebar{opacity:1}
-    .fp-timebar-fill{height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,#6f8cff,#b98cff,#6fffe9);box-shadow:0 0 12px rgba(130,170,255,.7);transform-origin:left center}
-    .fp-timebar-dot{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:#dce7ff;box-shadow:0 0 14px rgba(160,200,255,.95);transform:translate(-50%,-50%)}
-</style>
+    @keyframes fpPulse{from{opacity:.35;transform:scale(.995)}to{opacity:.75;transform:scale(1.005)}}</style>
 </head>
 <body>
 <div class="app">
@@ -1454,45 +1448,6 @@ const startHash=(location.hash||"#rankings").slice(1);
 const initialView=["rankings","creators","players","changes","time-machine","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
 refreshAuth();
-
-/* Secret 240 FPS frame-perfect mode: type Iwannadoaframeperfect anywhere. */
-(()=>{
-  const secret="iwannadoaframeperfect";
-  let typed="",active=false,fpTimer=0,fpFrames=0,barStart=0;
-  const bar=document.createElement("div");
-  bar.className="fp-timebar";
-  bar.innerHTML='<div class="fp-timebar-fill"></div><div class="fp-timebar-dot"></div>';
-  document.body.appendChild(bar);
-  const fill=bar.firstElementChild,dot=bar.lastElementChild;
-  const tick=()=>{
-    if(!active)return;
-    fpFrames++;
-    fpTimer=setTimeout(tick,1000/240);
-  };
-  const animateBar=(t)=>{
-    if(!active)return;
-    if(!barStart)barStart=t;
-    const p=((t-barStart)%2000)/2000;
-    fill.style.width=(p*100)+"%";
-    dot.style.left=(p*100)+"%";
-    requestAnimationFrame(animateBar);
-  };
-  const enable=()=>{
-    if(active)return;
-    active=true;
-    document.body.classList.add("fp360");
-    fpFrames=0;barStart=0;
-    tick();
-    requestAnimationFrame(animateBar);
-  };
-  addEventListener("keydown",e=>{
-    if(e.ctrlKey||e.altKey||e.metaKey)return;
-    const k=(e.key||"").toLowerCase();
-    if(k.length!==1)return;
-    typed=(typed+k).slice(-secret.length);
-    if(typed===secret)enable();
-  },{passive:true});
-})();
 </script>
 </body>
 </html>
