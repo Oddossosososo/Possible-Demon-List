@@ -135,7 +135,7 @@
     .video-shell{width:min(960px,100%);border:1px solid #8190ff35;border-radius:26px;overflow:hidden;background:#090d15;box-shadow:0 30px 120px #000b,0 0 50px #8190ff12}
     .video-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #ffffff0b}
     .video-frame-wrap{aspect-ratio:16/9;background:#000}
-    .video-frame-wrap iframe{width:100%;height:100%;display:block;border:0}
+    .video-frame-wrap iframe{width:100%;height:100%;display:block;border:0;pointer-events:none}
     @media(max-width:620px){.admin-dialog-grid{grid-template-columns:1fr}.admin-dialog-grid .wide{grid-column:auto}}
     .admin-stat b{display:block;font-size:24px;margin-top:4px}
     @media(max-width:760px){.admin-shell{grid-template-columns:1fr}.admin-menu{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-menu-title{grid-column:1/-1}.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -354,10 +354,7 @@
         <div class="admin-dialog-kicker">POSSIBLE PLAYER</div>
         <div class="admin-dialog-title" id="videoTitle">Level video</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="mini" id="videoRewind" type="button">↩ 10s</button>
-        <button class="dialog-close" id="videoClose" type="button">✕</button>
-      </div>
+      <button class="dialog-close" id="videoClose" type="button">✕</button>
     </div>
     <div class="video-frame-wrap">
       <iframe id="videoFrame" title="Possible level video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
@@ -543,7 +540,7 @@ function loadLockedYouTubeVideo(id){
         onReady:event=>{
           try{event.target.playVideo();}catch{}
           clearInterval(ytTimeTimer);
-          ytTimeTimer=setInterval(updateVideoTimeUI,250);
+          ytTimeTimer=setInterval(updateVideoTimeUI,50);
           updateVideoTimeUI();
         }
       }
@@ -575,7 +572,6 @@ function closeVideo(){
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
 }
-$("videoRewind").onclick=()=>rewindVideo(10);
 $("videoSeek").oninput=()=>{
   if(!ytPlayer)return;
   try{ytPlayer.seekTo(Number($("videoSeek").value)||0,true);}catch{}
