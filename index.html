@@ -635,7 +635,7 @@ function setupVideoPlayer(id){
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=new YT.Player("videoFrame",{
     videoId:id,
-    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1},
+    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,mute:1},
     events:{
       onReady:()=>{
         videoStarted=false;
