@@ -54,7 +54,11 @@
     .level:hover{transform:translateY(-2px);border-color:#8190ff45;box-shadow:0 15px 42px #0006,0 0 25px #8190ff0f}
     .rank{width:70px;flex:none;font-size:26px;font-weight:1000;color:#7e889d}
     .rank.top{color:#f1f3ff;text-shadow:0 0 18px #fff5}
-    .level-thumb{width:120px;height:68px;flex:none;border-radius:14px;overflow:hidden;border:1px solid #ffffff12;background:#080b11;position:relative}
+    .level-thumb{width:120px;height:68px;flex:none;border-radius:14px;overflow:hidden;border:1px solid #ffffff12;background:#080b11;position:relative;cursor:pointer}
+    .level-thumb:hover{border-color:#8190ff70;box-shadow:0 0 22px #8190ff22;transform:translateY(-1px)}
+    .level-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+    .level-thumb::after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;
+      display:grid;place-items:center;border-radius:50%;background:#000b;color:white;font-size:12px;padding-left:2px;box-shadow:0 0 18px #0008}
     .level-thumb img{width:100%;height:100%;display:block;object-fit:cover}
     .level-thumb::after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;
       display:grid;place-items:center;border-radius:50%;background:#000b;color:white;font-size:12px;padding-left:2px;box-shadow:0 0 18px #0008}
@@ -119,6 +123,12 @@
     .admin-dialog-actions{display:flex;justify-content:flex-end;gap:9px;padding:14px 20px 20px}
     .dialog-close{width:38px;height:38px;border:1px solid var(--line);background:#ffffff07;color:#b8c1d3;border-radius:12px;font-weight:1000}
     .dialog-danger{background:linear-gradient(135deg,#ff728d,#d94d69)!important;border-color:#ff728d55!important}
+    .video-modal{position:fixed;inset:0;z-index:210;display:none;align-items:center;justify-content:center;padding:20px;background:#02040ad9;backdrop-filter:blur(12px)}
+    .video-modal.show{display:flex}
+    .video-shell{width:min(960px,100%);border:1px solid #8190ff35;border-radius:26px;overflow:hidden;background:#090d15;box-shadow:0 30px 120px #000b,0 0 50px #8190ff12}
+    .video-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #ffffff0b}
+    .video-frame-wrap{aspect-ratio:16/9;background:#000}
+    .video-frame-wrap iframe{width:100%;height:100%;display:block;border:0}
     @media(max-width:620px){.admin-dialog-grid{grid-template-columns:1fr}.admin-dialog-grid .wide{grid-column:auto}}
     .admin-stat b{display:block;font-size:24px;margin-top:4px}
     @media(max-width:760px){.admin-shell{grid-template-columns:1fr}.admin-menu{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-menu-title{grid-column:1/-1}.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -306,6 +316,21 @@
   </div>
 </div>
 
+<div class="video-modal" id="videoModal" aria-hidden="true">
+  <div class="video-shell">
+    <div class="video-head">
+      <div>
+        <div class="admin-dialog-kicker">POSSIBLE PLAYER</div>
+        <div class="admin-dialog-title" id="videoTitle">Level video</div>
+      </div>
+      <button class="dialog-close" id="videoClose" type="button">✕</button>
+    </div>
+    <div class="video-frame-wrap">
+      <iframe id="videoFrame" title="Possible level video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
 <div id="verifyModal" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:#0009;padding:20px">
   <div class="panel" style="width:min(430px,100%);box-shadow:0 30px 100px #000b">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
@@ -386,7 +411,7 @@ $("adminDialogSubmit").onclick=()=>{
   });
   closeAdminDialog(result);
 };
-document.addEventListener("keydown",e=>{if(e.key==="Escape" && $("adminDialog")?.classList.contains("show"))closeAdminDialog();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("adminDialog")?.classList.contains("show"))closeAdminDialog();if($("videoModal")?.classList.contains("show"))closeVideo();}});
 function setLiveStatus(text,ok=true){const x=$("liveStatus");if(!x)return;x.textContent=text;x.style.color=ok?"#8ce9bc":"#ffbf7a";x.style.borderColor=ok?"#6de0a533":"#ffd36d33";x.style.background=ok?"#6de0a508":"#ffd36d08";}
 const fmtTime = v => { try { return new Date(v).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}); } catch { return v; } };
 function youtubeId(url){
@@ -399,6 +424,21 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
+function watchLevelVideo(url,title){
+  const id=youtubeId(url);
+  if(!id){toast("No YouTube video is attached to this level.");return}
+  $("videoTitle").textContent=title||"Level video";
+  $("videoFrame").src="https://www.youtube.com/embed/"+id+"?autoplay=1&rel=0";
+  $("videoModal").classList.add("show");
+  $("videoModal").setAttribute("aria-hidden","false");
+}
+function closeVideo(){
+  $("videoFrame").src="";
+  $("videoModal").classList.remove("show");
+  $("videoModal").setAttribute("aria-hidden","true");
+}
+$("videoClose").onclick=closeVideo;
+$("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
 function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));
@@ -426,7 +466,7 @@ async function loadLevels(){
     $("levelCount").textContent = levels.length + " level" + (levels.length===1?"":"s");
     el.innerHTML = levels.length ? levels.map((l,i)=>`
       <article class="level">
-        ${l.thumbnail_url?'<div class="level-thumb"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
+        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
         <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
         <div class="level-main">
           <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
