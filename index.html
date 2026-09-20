@@ -7,6 +7,7 @@
   <!-- Pages publish refresh: editable admin panel -->
   <meta name="description" content="Possible — a ranked list of Geometry Dash levels believed to be humanly possible, but not yet beaten.">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root{
       --bg:#07090f;--panel:#0e121b;--panel2:#111725;--text:#f5f7ff;--muted:#8d97aa;
@@ -353,7 +354,10 @@
         <div class="admin-dialog-kicker">POSSIBLE PLAYER</div>
         <div class="admin-dialog-title" id="videoTitle">Level video</div>
       </div>
-      <button class="dialog-close" id="videoClose" type="button">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="mini" id="videoRewind" type="button">↩ 10s</button>
+        <button class="dialog-close" id="videoClose" type="button">✕</button>
+      </div>
     </div>
     <div class="video-frame-wrap">
       <iframe id="videoFrame" title="Possible level video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
@@ -493,19 +497,52 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
+let ytPlayer=null;
+let ytPlayerReady=false;
+let ytPendingId="";
+window.onYouTubeIframeAPIReady=()=>{ ytPlayerReady=true; };
+
+function loadLockedYouTubeVideo(id){
+  const src="https://www.youtube.com/embed/"+id+
+    "?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&enablejsapi=1";
+  $("videoFrame").src=src;
+  if(ytPlayer){
+    try{ ytPlayer.destroy(); }catch{}
+    ytPlayer=null;
+  }
+  ytPendingId=id;
+  if(window.YT?.Player){
+    ytPlayer=new YT.Player("videoFrame",{
+      events:{
+        onReady:event=>{ try{event.target.playVideo();}catch{} }
+      }
+    });
+  }
+}
 function watchLevelVideo(url,title){
   const id=youtubeId(url);
   if(!id){toast("No YouTube video is attached to this level.");return}
   $("videoTitle").textContent=title||"Level video";
-  $("videoFrame").src="https://www.youtube.com/embed/"+id+"?autoplay=1&rel=0";
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
+  loadLockedYouTubeVideo(id);
+}
+function rewindVideo(seconds=10){
+  if(!ytPlayer)return;
+  try{
+    const current=Number(ytPlayer.getCurrentTime?.()||0);
+    ytPlayer.seekTo(Math.max(0,current-seconds),true);
+  }catch{}
 }
 function closeVideo(){
+  try{ytPlayer?.stopVideo?.();ytPlayer?.destroy?.()}catch{}
+  ytPlayer=null;
+  ytPendingId="";
   $("videoFrame").src="";
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
 }
+$("videoRewind").onclick=()=>rewindVideo(10);
 $("videoClose").onclick=closeVideo;
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
