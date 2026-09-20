@@ -135,7 +135,14 @@
     .video-shell{width:min(960px,100%);border:1px solid #8190ff35;border-radius:26px;overflow:hidden;background:#090d15;box-shadow:0 30px 120px #000b,0 0 50px #8190ff12}
     .video-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #ffffff0b}
     .video-frame-wrap{aspect-ratio:16/9;background:#000}
-    .video-frame-wrap iframe{width:100%;height:100%;display:block;border:0;pointer-events:none!important}
+    .video-frame-wrap iframe{width:100%;height:100%;display:block;border:0;pointer-events:auto}
+    .video-lock-top,.video-lock-left,.video-lock-right,.video-lock-bottom{
+      position:absolute;z-index:10;background:transparent;pointer-events:auto;user-select:none;touch-action:none
+    }
+    .video-lock-top{inset:0 0 58px 0}
+    .video-lock-left{left:0;bottom:0;width:58px;height:58px}
+    .video-lock-right{right:0;bottom:0;left:58px;height:58px}
+    .video-lock-bottom{left:0;right:0;bottom:0;height:4px}
     @media(max-width:620px){.admin-dialog-grid{grid-template-columns:1fr}.admin-dialog-grid .wide{grid-column:auto}}
     .admin-stat b{display:block;font-size:24px;margin-top:4px}
     @media(max-width:760px){.admin-shell{grid-template-columns:1fr}.admin-menu{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.admin-menu-title{grid-column:1/-1}.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -358,15 +365,10 @@
     </div>
     <div class="video-frame-wrap" style="position:relative">
       <iframe id="videoFrame" title="Possible level video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-      <button class="mini" id="videoPause" type="button"
-        style="position:absolute;left:14px;bottom:14px;z-index:3;min-width:78px;background:#080b11ee;border-color:#ffffff24;color:#fff">
-        ▶ Play
-      </button>
-      <div id="videoLockLayer" aria-hidden="true"
-        style="position:absolute;inset:0;z-index:10;pointer-events:auto;background:transparent;user-select:none;touch-action:none"
-        onpointerdown="event.preventDefault();event.stopPropagation()"
-        onclick="event.preventDefault();event.stopPropagation()"
-        oncontextmenu="event.preventDefault();event.stopPropagation()"></div>
+      <div class="video-lock-top" aria-hidden="true"></div>
+      <div class="video-lock-left" aria-hidden="true"></div>
+      <div class="video-lock-right" aria-hidden="true"></div>
+      <div class="video-lock-bottom" aria-hidden="true"></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #ffffff0b">
       <span id="videoTimeLabel" class="person-sub" style="min-width:76px;text-align:center">0:00 / 0:00</span>
@@ -524,8 +526,6 @@ function updateVideoTimeUI(){
     const current=Number(ytPlayer.getCurrentTime?.()||0);
     const duration=Number(ytPlayer.getDuration?.()||0);
     const state=Number(ytPlayer.getPlayerState?.()||-1);
-    const pause=$("videoPause");
-    if(pause) pause.textContent=state===1 ? "❚❚ Pause" : "▶ Play";
     const seek=$("videoSeek");
     const label=$("videoTimeLabel");
     if(seek && duration>0){
@@ -539,7 +539,7 @@ window.onYouTubeIframeAPIReady=()=>{ ytPlayerReady=true; };
 
 function loadLockedYouTubeVideo(id){
   const src="https://www.youtube.com/embed/"+id+
-    "?autoplay=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&enablejsapi=1";
+    "?autoplay=1&controls=1&disablekb=1&fs=0&rel=0&playsinline=1&enablejsapi=1";
   $("videoFrame").src=src;
   if(ytPlayer){
     try{ ytPlayer.destroy(); }catch{}
@@ -588,17 +588,12 @@ $("videoSeek").oninput=()=>{
   if(!ytPlayer)return;
   try{ytPlayer.seekTo(Number($("videoSeek").value)||0,true);}catch{}
 };
-$("videoPause").onclick=()=>{
-  if(!ytPlayer)return;
-  try{
-    const state=Number(ytPlayer.getPlayerState?.()||-1);
-    if(state===1) ytPlayer.pauseVideo();
-    else ytPlayer.playVideo();
-  }catch{}
-};
-$("videoLockLayer").onpointerdown=e=>{e.preventDefault();e.stopPropagation()};
-$("videoLockLayer").onclick=e=>{e.preventDefault();e.stopPropagation()};
-$("videoLockLayer").oncontextmenu=e=>{e.preventDefault();e.stopPropagation()};
+document.querySelectorAll(".video-lock-top,.video-lock-left,.video-lock-right,.video-lock-bottom").forEach(el=>{
+  const block=e=>{e.preventDefault();e.stopPropagation()};
+  el.addEventListener("pointerdown",block);
+  el.addEventListener("click",block);
+  el.addEventListener("contextmenu",block);
+});
 $("videoClose").onclick=closeVideo;
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
