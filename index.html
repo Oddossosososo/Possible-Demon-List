@@ -739,7 +739,10 @@ document.querySelectorAll(".video-lock").forEach(el=>{
   el.addEventListener("click",block);
   el.addEventListener("contextmenu",block);
 });
-$("videoClose").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();closeVideo();});
+$("videoClose").onclick=null;
+$("videoClose").addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();closeVideo();},{capture:true});
+$("videoClose").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();closeVideo();},{capture:true});
+$("videoClose").addEventListener("touchend",e=>{e.preventDefault();e.stopPropagation();closeVideo();},{capture:true});
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
 async function showView(name){
