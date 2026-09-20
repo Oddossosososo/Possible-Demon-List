@@ -573,35 +573,7 @@ function debounce(fn,ms=450){
     t=setTimeout(()=>fn(...args),ms);
   };
 }
-async function autoFindGDLevelId(name,creator,idInput,stateEl){
-  const n=String(name?.value||"").trim();
-  const c=String(creator?.value||"").trim();
-  if(!idInput)return;
-  idInput.value="";
-  if(stateEl) stateEl.textContent="";
-  if(n.length<2)return;
-  if(stateEl) stateEl.textContent="Finding Geometry Dash level…";
-  try{
-    const r=await fetch("https://gdbrowser.com/api/search/"+encodeURIComponent(n)+"?type=0&count=20",{cache:"no-store"});
-    if(!r.ok)throw new Error("lookup_failed");
-    const rows=await r.json();
-    const list=Array.isArray(rows)?rows:[];
-    const exact=list.filter(x=>String(x?.name||"").trim().toLowerCase()===n.toLowerCase());
-    const ranked=[...exact,...list.filter(x=>!exact.includes(x))];
-    const creatorMatch=c ? ranked.find(x=>String(x?.author||"").trim().toLowerCase()===c.toLowerCase()) : null;
-    const chosen=creatorMatch||ranked[0];
-    if(!chosen?.id){
-      if(stateEl) stateEl.textContent="Couldn’t find that level automatically.";
-      return;
-    }
-    idInput.value=String(chosen.id);
-    const note=creatorMatch ? "Auto-filled from level + creator." : "Auto-filled from level name.";
-    if(stateEl) stateEl.textContent=note;
-  }catch(e){
-    console.error(e);
-    if(stateEl) stateEl.textContent="Automatic ID lookup failed — try again.";
-  }
-}
+
 
 
 let __adminDialogResolve=null;
