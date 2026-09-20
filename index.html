@@ -1323,24 +1323,36 @@ window.editPlayerProfile=async(username)=>{
 window.editCreatorProfile=async(username)=>{
   const p=(adminState.data?.creators||[]).find(x=>String(x.username||"").trim().toLowerCase()===String(username||"").trim().toLowerCase())||{};
   let current=String(p.youtube_handle||"").trim();
-  if(!current){
-    const m=String(p.youtube_url||"").match(/youtube\.com\/@([^/?#]+)/i);
-    if(m) current="@"+m[1];
-  }
+  if(!current) current=String(p.youtube_url||"").trim();
   const result=await openAdminDialog({
     title:"Edit Creator Profile",
-    subtitle:"Set the YouTube @handle for "+username+".",
+    subtitle:"Set a YouTube @handle or channel URL for "+username+".",
     confirmText:"Save Profile",
-    fields:[{key:"youtube_handle",label:"YouTube @handle",value:current,placeholder:"@example",wide:true}]
+    fields:[{key:"youtube",label:"YouTube handle or channel URL",value:current,placeholder:"@example or https://www.youtube.com/channel/UC...",wide:true}]
   });
   if(!result)return;
-  let handle=String(result.youtube_handle||"").trim();
-  if(handle && !handle.startsWith("@")) handle="@"+handle;
-  if(handle && !/^@[A-Za-z0-9._-]{2,30}$/.test(handle)){
-    toast("Enter a valid YouTube @handle.");
-    return;
+  const raw=String(result.youtube||"").trim();
+  let handle="",youtubeUrl="",channelId="";
+  if(raw){
+    if(/^@?[A-Za-z0-9._-]{2,30}$/.test(raw)){
+      handle=raw.startsWith("@")?raw:"@"+raw;
+      youtubeUrl="https://www.youtube.com/"+handle;
+    }else{
+      try{
+        const u=new URL(raw), host=u.hostname.toLowerCase(), parts=u.pathname.split("/").filter(Boolean);
+        if((host==="youtube.com"||host==="www.youtube.com")&&parts[0]?.toLowerCase()==="channel"&&/^UC[A-Za-z0-9_-]+$/.test(parts[1]||"")){
+          channelId=parts[1]; youtubeUrl="https://www.youtube.com/channel/"+channelId;
+        }else if((host==="youtube.com"||host==="www.youtube.com")&&/^@[A-Za-z0-9._-]{2,30}$/.test(parts[0]||"")){
+          handle=parts[0]; youtubeUrl="https://www.youtube.com/"+handle;
+        }else{
+          toast("Enter a YouTube @handle or /channel/UC... URL."); return;
+        }
+      }catch{
+        toast("Enter a valid YouTube @handle or channel URL."); return;
+      }
+    }
   }
-  const j=await adminPost({action:"link_creator_youtube",username,youtube_url:handle?"https://www.youtube.com/"+handle:"",youtube_channel_id:"",youtube_handle:handle});
+  const j=await adminPost({action:"link_creator_youtube",username,youtube_url:youtubeUrl,youtube_channel_id:channelId,youtube_handle:handle});
   if(j){
     toast("Creator profile updated.");
     adminState.data=null;
@@ -1348,7 +1360,6 @@ window.editCreatorProfile=async(username)=>{
     loadCommunity();
   }
 };
-
 window.moderateProfile=async(id,status)=>{
   const result=await openAdminDialog({
     title:status==="approved"?"Approve profile":"Restrict profile",
