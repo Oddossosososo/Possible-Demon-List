@@ -655,7 +655,11 @@ function setupVideoPlayer(id){
         videoPlayer=new YT.Player("videoFrame",{
           events:{
             onReady:()=>{
-              try{videoPlayer.mute();videoPlayer.playVideo()}catch{}
+              try{
+                videoPlayer.unMute();
+                videoPlayer.setVolume(100);
+                videoPlayer.playVideo();
+              }catch{}
               videoStarted=true;
               updateVideoSeek();
               clearInterval(videoTicker);
