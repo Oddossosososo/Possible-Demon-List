@@ -49,20 +49,15 @@
     .section-head p{margin:0;color:#737d91;font-size:13px}
     .cards{display:grid;gap:12px}
     .level{
-      --superellipse-n:4;
       display:flex;align-items:center;gap:16px;min-height:88px;padding:14px 18px;
-      position:relative;border:0;background:linear-gradient(110deg,#131824,#0c1018);
+      position:relative;border:1px solid var(--line);
+      background:linear-gradient(110deg,#131824,#0c1018);
       box-shadow:0 10px 34px #0004;transition:.18s;
-      isolation:isolate;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 400' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 200 C0 89.5 89.5 0 200 0 H800 C910.5 0 1000 89.5 1000 200 C1000 310.5 910.5 400 800 400 H200 C89.5 400 0 310.5 0 200 Z'/%3E%3C/svg%3E");
-      mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 400' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 200 C0 89.5 89.5 0 200 0 H800 C910.5 0 1000 89.5 1000 200 C1000 310.5 910.5 400 800 400 H200 C89.5 400 0 310.5 0 200 Z'/%3E%3C/svg%3E");
+      border-radius:0;
+      overflow:hidden;
+      clip-path:path("M 22 0 C 9 0 0 9 0 22 L 0 66 C 0 79 9 88 22 88 L 1000 88 C 1013 88 1022 79 1022 66 L 1022 22 C 1022 9 1013 0 1000 0 Z");
     }
-    .level::before{
-      content:"";position:absolute;inset:0;z-index:-1;
-      border:1px solid var(--line);border-radius:24px;
-      pointer-events:none;
-    }
-    .level:hover{transform:translateY(-2px);box-shadow:0 15px 42px #0006,0 0 25px #8190ff0f}
+    .level:hover{transform:translateY(-2px);border-color:#8190ff45;box-shadow:0 15px 42px #0006,0 0 25px #8190ff0f}
     .rank{width:70px;flex:none;font-size:26px;font-weight:1000;color:#7e889d}
     .rank.top{color:#f1f3ff;text-shadow:0 0 18px #fff5}
     .level-thumb{width:120px;height:68px;flex:none;border-radius:14px;overflow:hidden;border:1px solid #ffffff12;background:#080b11;position:relative;cursor:pointer}
