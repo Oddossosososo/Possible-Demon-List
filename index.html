@@ -849,11 +849,11 @@ function personCard(p,role){
   let sub=role==="Player" && p.primary_icon_type ? `${p.primary_icon_type.toUpperCase()} #${p.primary_icon_id||1}` : role;
   if(role==="Creator"){
     const count=Number(p.level_count||0);
-    sub=count+` level${count===1?"":"s"} on Possible`;
+    sub=`${Number(p.points||0).toFixed(2).replace(/\\.00$/,"")} points · `+count+` level${count===1?"":"s"} on Possible`;
   }
   if(role==="Player"){
     const count=Number(p.level_count||0);
-    sub=count+` WR level${count===1?"":"s"} on Possible`;
+    sub=`${Number(p.points||0).toFixed(2).replace(/\\.00$/,"")} points · `+count+` WR level${count===1?"":"s"} on Possible`;
   }
   const levelNames=role==="Creator" && Array.isArray(p.levels) && p.levels.length
     ? `<div class="person-bio">${escapeHTML(p.levels.map(x=>x.name).join(" • "))}</div>` : "";
@@ -1672,6 +1672,7 @@ window.editLevel=async(id)=>{
       {key:"creator",label:"Creator",value:x.creator},
       {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
       {key:"current_wr",label:"Current WR",value:x.current_wr||"",normalize:"percent"},
+      {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",value:Number(x.difficulty_points)||0},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
       {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
       {key:"thumbnail_url",label:"Thumbnail URL (optional)",value:x.thumbnail_url||""},
@@ -1701,6 +1702,7 @@ window.createLevel=async()=>{
     fields:[
       {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"Auto-filled from level name",readonly:true},
       {key:"current_wr",label:"Current WR",placeholder:"Player name / record",normalize:"percent"},
+      {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",placeholder:"0 to 3"},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
       {key:"verification_url",label:"YouTube / Verification URL",placeholder:"https://youtube.com/watch?v=...",wide:true},
