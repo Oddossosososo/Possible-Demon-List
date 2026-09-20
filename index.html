@@ -309,6 +309,7 @@
           <button class="admin-menu-btn" data-admin-tab="submissions">Submissions</button>
           <button class="admin-menu-btn" data-admin-tab="profiles">Profiles</button>
           <button class="admin-menu-btn" data-admin-tab="creators">Creators</button>
+          <button class="admin-menu-btn" data-admin-tab="players">Players</button>
         </aside>
         <div class="admin-content" id="adminContent"><div class="empty">Checking access…</div></div>
       </div>
@@ -983,6 +984,54 @@ function renderAdminTab(){
   }
 }
 
+  if(adminState.tab==="players"){
+    const stored=new Map((d.players||[]).map(x=>[String(x.username||"").trim().toLowerCase(),x]));
+    const names=new Map();
+
+    function extractWRPlayer(value){
+      const raw=String(value||"").trim();
+      if(!raw) return "";
+      const parts=raw.split(/\s+[—–-]\s+/);
+      const candidate=(parts[0]||"").trim();
+      return candidate && /[A-Za-z]/.test(candidate) ? candidate : "";
+    }
+
+    (d.levels||[]).forEach(x=>{
+      const player=extractWRPlayer(x.current_wr);
+      if(player) names.set(player.toLowerCase(),player);
+    });
+    (d.players||[]).forEach(x=>{
+      const player=String(x.username||"").trim();
+      if(player) names.set(player.toLowerCase(),player);
+    });
+
+    const rows=[...names.values()].sort((a,b)=>a.localeCompare(b));
+    box.innerHTML=`
+      <div class="panel">
+        <div><h3 style="margin:0">Player Profiles</h3><div class="person-sub">Players are generated from Current WRs. You can override the YouTube profile with an exact URL.</div></div>
+        <div style="margin-top:12px">
+          ${rows.map(name=>{
+            const p=stored.get(name.toLowerCase());
+            const linked=!!p?.youtube_url;
+            return `<div class="admin-row">
+              <div>
+                <b>${escapeHTML(name)}</b>
+                <div class="person-sub">${linked ? "YouTube linked · "+escapeHTML(p.youtube_handle||p.youtube_channel_id||p.youtube_url) : "No YouTube profile linked"}</div>
+              </div>
+              <div class="mini-actions">
+                <button class="mini ${linked?"success":""}" data-link-player="${escapeHTML(name)}">${linked?"Change YouTube":"Link YouTube"}</button>
+              </div>
+            </div>`;
+          }).join("") || '<div class="empty">No players yet.</div>'}
+        </div>
+      </div>`;
+    box.querySelectorAll("[data-link-player]").forEach(btn=>{
+      btn.onclick=()=>linkPlayerYouTube(btn.dataset.linkPlayer||"");
+    });
+    return;
+  }
+}
+
 function adminOpenTab(tab){
   adminState.tab=tab;
   document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x.dataset.adminTab===tab));
@@ -1006,6 +1055,43 @@ async function loadAdmin(){
 window.reviewSubmission=async(id,status)=>{
   const j=await adminPost({action:"review_submission",id,status});
   if(j){toast("Submission updated."); adminState.data=null; loadAdmin();}
+};
+
+window.linkPlayerYouTube=async(username)=>{
+  const result=await openAdminDialog({
+    title:"YouTube Override",
+    subtitle:"Point "+username+" to any exact YouTube channel URL. Possible will not guess from the username.",
+    confirmText:"Save YouTube",
+    fields:[
+      {key:"youtube_url",label:"Exact YouTube channel URL",placeholder:"https://www.youtube.com/@channel",wide:true},
+      {key:"youtube_handle",label:"Channel handle (optional)",placeholder:"@example"}
+    ]
+  });
+  if(!result)return;
+
+  const url=String(result.youtube_url||"").trim();
+  const ok=/^https?:\/\/(?:www\.)?youtube\.com\/(channel\/UC[A-Za-z0-9_-]+|@[^\s/?]+|c\/[^\s/?]+|user\/[^\s/?]+)(?:[/?#].*)?$/i.test(url);
+  if(!ok){
+    toast("Enter a valid exact YouTube channel URL.");
+    return;
+  }
+
+  const channelMatch=url.match(/youtube\.com\/channel\/(UC[A-Za-z0-9_-]+)/i);
+  const handleMatch=url.match(/youtube\.com\/@([^/?#]+)/i);
+
+  const j=await adminPost({
+    action:"link_player_youtube",
+    username,
+    youtube_url:url,
+    youtube_channel_id:channelMatch?channelMatch[1]:"",
+    youtube_handle:String(result.youtube_handle||"").trim() || (handleMatch ? "@"+handleMatch[1] : "")
+  });
+  if(j){
+    toast("Player YouTube profile linked.");
+    adminState.data=null;
+    loadAdmin();
+    loadCommunity();
+  }
 };
 
 window.linkCreatorYouTube=async(username)=>{
