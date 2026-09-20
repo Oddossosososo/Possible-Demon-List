@@ -177,6 +177,7 @@
         <button class="nav-btn" data-view="creators">Creators</button>
         <button class="nav-btn" data-view="players">Players</button>
         <button class="nav-btn" data-view="changes">Changelog</button>
+        <button class="nav-btn" data-view="time-machine">Time Machine</button>
         <button class="nav-btn" data-view="submit">Submit</button>
         <button class="nav-btn" data-view="staff">Staff</button>
         <button class="nav-btn" id="verifyNav" data-view="verify">Verify</button>
@@ -218,6 +219,20 @@
     <section class="view" id="view-players">
       <div class="section-head"><div><h2>Player List</h2><p>Automatically generated from current WRs.</p></div></div>
       <div id="players" class="grid"><div class="empty">Loading players…</div></div>
+    </section>
+
+    <section class="view" id="view-time-machine">
+      <div class="section-head"><div><h2>Time Machine</h2><p>Explore recorded versions of the Possible rankings.</p></div></div>
+      <div class="panel">
+        <div class="kicker" style="margin-bottom:12px">HISTORICAL VIEW</div>
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+          <div style="min-width:220px;flex:1"><label for="tmDate">Snapshot date</label><input id="tmDate" type="date"></div>
+          <button class="primary" id="tmLoad">Load Snapshot</button>
+          <button class="secondary" id="tmLive">Return to Live</button>
+        </div>
+        <div id="tmState" class="muted" style="margin-top:12px">Choose a date to view a recorded ranking snapshot.</div>
+      </div>
+      <div id="tmRankings" class="cards" style="margin-top:14px"></div>
     </section>
 
     <section class="view" id="view-changes">
@@ -571,6 +586,7 @@ async function showView(name){
   if(name==="rankings") loadLevels();
   if(name==="creators" || name==="players") loadCommunity();
   if(name==="changes") loadChanges();
+  if(name==="time-machine") initTimeMachine();
   if(name==="submit") loadSubmit();
   if(name==="staff") loadStaff();
   if(name==="admin") loadAdmin();
@@ -744,6 +760,46 @@ async function loadChanges(){
 }
 function labelChange(t){return ({added:"Level added",updated:"Level updated",rank_changed:"Rank changed",beaten:"Level beaten",archived:"Level archived",restored:"Level restored",deleted:"Level removed"})[t]||"List update";}
 
+let __tmReady=false;
+function initTimeMachine(){
+  if(__tmReady)return;
+  __tmReady=true;
+  const d=$("tmDate");
+  d.max=new Date().toISOString().slice(0,10);
+  $("tmLoad").onclick=loadTimeMachine;
+  $("tmLive").onclick=()=>showView("rankings");
+}
+async function loadTimeMachine(){
+  const date=$("tmDate").value;
+  const out=$("tmRankings"),state=$("tmState");
+  if(!date){state.textContent="Select a snapshot date first.";return;}
+  state.textContent="Loading historical snapshot…";
+  out.innerHTML="";
+  try{
+    const r=await fetch(API.levels+"?at="+encodeURIComponent(date)+"&t="+Date.now(),{cache:"no-store"});
+    const json=await r.json();
+    if(!r.ok)throw new Error(json?.error||"Snapshot unavailable");
+    const levels=Array.isArray(json)?json:(json.data||[]);
+    if(!levels.length){
+      state.textContent="No recorded snapshot is available for that date.";
+      return;
+    }
+    state.textContent="Historical snapshot • "+date+" • "+levels.length+" levels";
+    out.innerHTML=levels.map((l,i)=>`<article class="level">
+      <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
+      <div class="level-main">
+        <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
+        <div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div>
+        <div class="level-id">GD ID ${escapeHTML(l.gd_level_id)}</div>
+        ${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':''}
+      </div>
+      <div class="status">HISTORICAL</div>
+    </article>`).join("");
+  }catch(e){
+    console.error(e);
+    state.textContent="This date isn't available yet. Historical snapshots require the backend to support the `at` date query.";
+  }
+}
 let __sessionCache=null;
 let __sessionCacheAt=0;
 let __sessionPromise=null;
