@@ -146,7 +146,7 @@
       width:100%;height:100%;display:block;border:0;
       pointer-events:auto;
     }
-    .video-start-hint{position:absolute;inset:0;z-index:20;border:0;background:#0006;color:#fff;font-weight:900;font-size:15px;letter-spacing:.2px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-shadow:0 2px 8px #000}
+    .video-start-hint{position:absolute;inset:0;z-index:20;border:0;background:#0006;color:#fff;font-weight:900;font-size:15px;letter-spacing:.2px;cursor:default;display:flex;align-items:center;justify-content:center;text-shadow:0 2px 8px #000;pointer-events:none}
 .video-start-hint.hidden{display:none}
 .video-seek{padding:12px 16px 14px;border-top:1px solid #ffffff0b;background:#0b0f17}
     .video-seek-row{display:flex;align-items:center;gap:10px}
@@ -619,7 +619,7 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false;
+let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false,videoRetryTimer=null;
 
 function formatVideoTime(v){
   const s=Math.max(0,Math.floor(Number(v)||0));
@@ -636,30 +636,47 @@ function updateVideoSeek(){
   }catch{}
 }
 function setupVideoPlayer(id){
-  if(typeof YT==="undefined" || !YT.Player){videoPendingId=id;return}
+  if(typeof YT==="undefined" || !YT.Player){
+    videoPendingId=id;
+    return;
+  }
   videoPendingId="";
+  clearTimeout(videoRetryTimer);
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=new YT.Player("videoFrame",{
     videoId:id,
-    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,mute:1},
+    playerVars:{controls:0,disablekb:1,fs:0,rel:0,playsinline:1,modestbranding:1,enablejsapi:1,origin:location.origin},
     events:{
       onReady:()=>{
         videoStarted=false;
         $("videoStartHint").classList.add("hidden");
-        try{videoPlayer.playVideo()}catch{}
+        try{
+          videoPlayer.mute();
+          videoPlayer.playVideo();
+        }catch(e){console.warn("Possible autoplay:",e)}
         updateVideoSeek();
         clearInterval(videoTicker);
         videoTicker=setInterval(updateVideoSeek,250);
+        videoRetryTimer=setTimeout(()=>{
+          try{
+            if(videoPlayer && videoPlayer.getPlayerState()!==YT.PlayerState.PLAYING){
+              videoPlayer.mute();
+              videoPlayer.playVideo();
+            }
+          }catch{}
+        },700);
       },
       onStateChange:e=>{
         updateVideoSeek();
         if(e.data===YT.PlayerState.PLAYING){
           videoStarted=true;
+          $("videoStartHint").classList.add("hidden");
         }
       },
       onError:e=>{
         console.error("Possible video error:",e.data);
         $("videoStartHint").textContent="YouTube couldn't play this video";
+        $("videoStartHint").classList.remove("hidden");
       }
     }
   });
@@ -670,8 +687,8 @@ function watchLevelVideo(url,title){
   $("videoTitle").textContent=title||"Level video";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
-  $("videoStartHint").textContent="🖱️ Click / 👆 Tap the video to start";
-  $("videoStartHint").classList.remove("hidden");
+  $("videoStartHint").textContent="Please move your mouse or finger off the video to watch";
+  $("videoStartHint").classList.add("hidden");
   $("videoModal").classList.add("show");
   $("videoModal").setAttribute("aria-hidden","false");
   setupVideoPlayer(id);
@@ -679,6 +696,7 @@ function watchLevelVideo(url,title){
 function closeVideo(){
   clearInterval(videoTicker);
   videoTicker=null;
+  clearTimeout(videoRetryTimer);
   if(videoPlayer){try{videoPlayer.destroy()}catch{}}
   videoPlayer=null;
   videoPendingId="";
@@ -690,10 +708,6 @@ function closeVideo(){
 }
 window.onYouTubeIframeAPIReady=()=>{
   if(videoPendingId)setupVideoPlayer(videoPendingId);
-};
-$("videoStartHint").onclick=(e)=>{
-  e.preventDefault();
-  e.stopPropagation();
 };
 const videoWrap=$("videoFrame")?.parentElement;
 if(videoWrap){
