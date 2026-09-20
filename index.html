@@ -671,10 +671,10 @@ function setupVideoPlayer(id){
     },150);
   }
 }
-function watchLevelVideo(url,title,rank){
+function watchLevelVideo(url,title,levelName){
   const id=youtubeId(url);
   if(!id){toast("No YouTube video is attached to this level.");return}
-  videoCutoff=Number(rank)===1 ? 67 : 0;
+  videoCutoff=String(levelName||"").trim().toLowerCase()==="chaotic world" ? 67 : 0;
   $("videoTitle").textContent=title||"Level video";
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
@@ -714,7 +714,7 @@ document.querySelectorAll(".video-lock").forEach(el=>{
   el.addEventListener("click",block);
   el.addEventListener("contextmenu",block);
 });
-$("videoClose").onclick=closeVideo;
+$("videoClose").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();closeVideo();});
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
 async function showView(name){
@@ -752,7 +752,7 @@ async function loadLevels(){
     $("levelCount").textContent = levels.length + " level" + (levels.length===1?"":"s");
     el.innerHTML = levels.length ? levels.map((l,i)=>`
       <article class="level">
-        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,Number(this.dataset.rank)||0)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-rank="'+escapeHTML(String(l.current_rank??(i+1)))+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
+        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
         <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
         <div class="level-main">
           <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
