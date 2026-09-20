@@ -219,6 +219,7 @@
             <button class="nav-btn" data-view="time-machine" style="width:100%;text-align:left;margin:2px 0">Time Machine</button>
             <button class="nav-btn" data-view="submit" style="width:100%;text-align:left;margin:2px 0">Submit</button>
             <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Staff</button>
+            <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Apply for Moderator</button>
             <button class="nav-btn" id="verifyNav" data-view="verify" style="width:100%;text-align:left;margin:2px 0">Verify</button>
             <button class="nav-btn" id="accountNav" data-view="account" style="width:100%;text-align:left;margin:2px 0">Account</button>
           </div>
@@ -306,48 +307,26 @@
     <section class="view" id="view-staff">
       <div class="section-head"><div><h2>Staff</h2><p>Help verify levels and keep the community running.</p></div></div>
       <div class="panel" id="staffPublic">
-        <p class="muted">Possible staff roles include Verifier, Moderator, Admin, and Trial Staff. Verified completions can remove a level from the active Possible list while preserving its history.</p>
+        <p class="muted">Possible staff roles include Verifier, Moderator, Admin, and Trial Staff. Moderators can review submissions and profile reports while admin-only controls remain protected.</p>
         <div id="staffMembers" class="cards" style="margin-top:14px"></div>
       </div>
-      <div class="panel" id="staffApplication" style="margin-top:12px;display:none">
-        <h3 style="margin-top:0">Apply for Staff</h3>
+      <div class="panel" id="staffApplication" style="margin-top:12px">
+        <h3 style="margin-top:0">Apply for Moderator</h3>
+        <p class="muted">Moderator applications are reviewed by Possible administrators. You must be signed in to apply.</p>
         <div class="form-grid">
           <div><label>Possible username</label><input id="appPossible" placeholder="Your Possible username"></div>
           <div><label>Geometry Dash username</label><input id="appGD" placeholder="Your GD username"></div>
-          <div><label>Discord username</label><input id="appDiscord" placeholder="Optional"></div>
-          <div><label>Requested role</label>
-            <select id="appRole"><option value="trial_staff">Trial Staff</option><option value="verifier">Verifier</option><option value="moderator">Moderator</option><option value="admin">Admin</option></select>
-          </div>
         </div>
-        <div style="margin-top:12px"><label>Why should you join?</label><textarea id="appReason"></textarea></div>
-        <div style="margin-top:12px"><label>Experience</label><textarea id="appExperience" placeholder="Optional"></textarea></div>
-        <div style="margin-top:12px"><label>Availability</label><input id="appAvailability" placeholder="Optional"></div>
-        <div class="form-actions"><button class="primary" id="submitStaff">Submit Application</button></div>
+        <div style="margin-top:12px"><label>Why do you want to become a moderator?</label><textarea id="appReason" placeholder="Why you want to help Possible"></textarea></div>
+        <div style="margin-top:12px"><label>What makes a good moderator?</label><textarea id="appExperience" placeholder="Your view on good moderation"></textarea></div>
+        <div style="margin-top:12px"><label>Previous moderation experience</label><textarea id="appPrevious" placeholder="Any relevant experience"></textarea></div>
+        <div style="margin-top:12px"><label>Availability</label><input id="appAvailability" placeholder="When you are usually available"></div>
+        <div class="form-actions"><button class="primary" id="submitStaff">Submit Moderator Application</button></div>
         <div id="myApplications" style="margin-top:14px"></div>
       </div>
-    </section>
-
-    <section class="view" id="view-verify">
-      <div class="section-head">
-        <div><h2>Verify Account</h2><p>Enter the 6-digit code sent to your email.</p></div>
-      </div>
-      <div class="panel" style="max-width:620px">
-        <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT VERIFICATION</div>
-        <h3 style="margin:0 0 8px">Email verification code</h3>
-        <p class="muted">We'll send a one-time 6-digit code to your email. Enter it here to verify your Possible account.</p>
-        <div style="margin-top:16px">
-          <label>Email</label>
-          <input id="verifyPageEmail" type="email" placeholder="you@example.com" autocomplete="email">
-        </div>
-        <div style="margin-top:12px">
-          <label>6-digit code</label>
-          <input id="verifyPageCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:25px;letter-spacing:8px;text-align:center">
-        </div>
-        <div class="form-actions">
-          <button class="primary" id="verifyPageSend">Send code</button>
-          <button class="secondary" id="verifyPageCheck">Verify code</button>
-        </div>
-        <div id="verifyPageState" class="muted" style="margin-top:12px"></div>
+      <div class="panel" id="moderatorTools" style="margin-top:12px;display:none">
+        <div class="section-head" style="margin:0 0 12px"><div><h3 style="margin:0">Moderator Tools</h3><p>Review pending submissions and profile reports.</p></div></div>
+        <div id="moderationQueue"></div>
       </div>
     </section>
 
@@ -385,6 +364,9 @@
           <button class="admin-menu-btn" data-admin-tab="profiles">Profiles</button>
           <button class="admin-menu-btn" data-admin-tab="creators">Creators</button>
           <button class="admin-menu-btn" data-admin-tab="players">Players</button>
+          <button class="admin-menu-btn" data-admin-tab="staff-applications">Staff Applications</button>
+          <button class="admin-menu-btn" data-admin-tab="staff-management">Staff Management</button>
+          <button class="admin-menu-btn" data-admin-tab="staff-actions">Staff History</button>
         </aside>
         <div class="admin-content" id="adminContent"><div class="empty">Checking access…</div></div>
       </div>
@@ -1139,7 +1121,7 @@ sb.auth.onAuthStateChange(()=>{
 
 $("submitStaff").onclick=async()=>{
   const s=await session(); if(!s){toast("Sign in first.");return}
-  const payload={action:"submit_application",possible_username:$("appPossible").value,gd_username:$("appGD").value,discord_username:$("appDiscord").value,requested_role:$("appRole").value,reason:$("appReason").value,experience:$("appExperience").value,availability:$("appAvailability").value};
+  const payload={action:"submit_application",possible_username:$("appPossible").value.trim(),gd_username:$("appGD").value.trim(),reason:$("appReason").value.trim(),experience:"Good moderator: "+$("appExperience").value.trim()+"\nPrevious moderation experience: "+$("appPrevious").value.trim(),availability:$("appAvailability").value.trim()};
   const r=await fetch(API.staff,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},body:JSON.stringify(payload)});
   const j=await r.json();
   if(!r.ok){toast(j.message||"Application failed.");return}
@@ -1150,20 +1132,23 @@ let __staffPromise=null;
 async function loadStaff(){
   if(__staffPromise)return __staffPromise;
   const box=$("staffMembers");
-  __staffPromise=(async()=>{ box.innerHTML='<div class="empty">Loading staff…</div>';
-  try{
-    const r=await fetch(API.staff+"?view=staff"); const j=await r.json();
-    if(!r.ok) throw new Error();
-    const list=j.data||[];
-    box.innerHTML=list.length?list.map(s=>`<div class="admin-card"><h3>${escapeHTML(s.role.replace("_"," ").toUpperCase())}</h3><p>Staff user: ${escapeHTML(s.user_id)}</p></div>`).join(""):'<div class="empty">No public staff members yet.</div>';
-    const me=await session();
-    $("myApplications").innerHTML="";
-    if(me){
-      const rr=await fetch(API.staff+"?view=my_applications",{headers:{Authorization:"Bearer "+me.access_token}});
-      const jj=await rr.json();
-      if(rr.ok && jj.data?.length) $("myApplications").innerHTML="<div class='muted'><strong>Your applications</strong></div>"+jj.data.map(a=>`<div class="admin-card" style="margin-top:8px"><b>${escapeHTML(a.requested_role.toUpperCase())}</b> · ${escapeHTML(a.status)}<div class="person-sub">${escapeHTML(a.reason)}</div></div>`).join("");
-    }
-  }catch(e){box.innerHTML='<div class="empty">Couldn’t load staff.</div>';}
+  __staffPromise=(async()=>{
+    box.innerHTML='<div class="empty">Loading staff…</div>';
+    try{
+      const r=await fetch(API.staff+"?view=staff&t="+Date.now(),{cache:"no-store"}); const j=await r.json();
+      if(!r.ok)throw new Error(j?.message||"Staff unavailable");
+      const list=j.data||[];
+      box.innerHTML=list.length?list.map(s=>`<div class="admin-card"><h3>${escapeHTML(String(s.role||"").replaceAll("_"," ").toUpperCase())}</h3><p>Staff user: ${escapeHTML(s.user_id)}</p></div>`).join(""):'<div class="empty">No public staff members yet.</div>';
+      const me=await session();
+      $("myApplications").innerHTML="";
+      $("staffApplication").style.display=me?"block":"none";
+      if(me){
+        const rr=await fetch(API.staff+"?view=my_applications",{headers:{Authorization:"Bearer "+me.access_token}});
+        const jj=await rr.json();
+        if(rr.ok&&jj.data?.length) $("myApplications").innerHTML="<div class='muted'><strong>Your applications</strong></div>"+jj.data.map(a=>`<div class="admin-card" style="margin-top:8px"><b>MODERATOR</b> · ${escapeHTML(a.status)}<div class="person-sub">${escapeHTML(a.reason)}</div>${a.reviewer_notes?'<div class="person-sub" style="margin-top:6px">Decision: '+escapeHTML(a.reviewer_notes)+'</div>':''}</div>`).join("");
+      }
+      await loadModeratorTools();
+    }catch(e){box.innerHTML='<div class="empty">Couldn’t load staff.</div>'; $("staffApplication").style.display="none";}
   })().finally(()=>{__staffPromise=null});
   return __staffPromise;
 }
@@ -1197,6 +1182,88 @@ function adminTabButtons(){
   });
 }
 
+async function staffFetch(view){
+  const s=await session();
+  if(!s){toast("Sign in first.");return null}
+  try{
+    const r=await fetch(API.staff+"?view="+encodeURIComponent(view)+"&t="+Date.now(),{headers:{Authorization:"Bearer "+s.access_token},cache:"no-store"});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j?.data?.error||j?.message||"Request failed");
+    return j.data||null;
+  }catch(e){toast(e.message||"Staff request failed.");return null}
+}
+async function staffPost(payload){
+  const s=await session();
+  if(!s){toast("Sign in first.");return null}
+  try{
+    const r=await fetch(API.staff,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!r.ok){toast(j?.data?.error||j?.message||"Staff action failed.");return null}
+    return j.data||j;
+  }catch(e){toast("Staff request failed.");return null}
+}
+async function reviewStaffApplication(id,status){
+  const result=await openAdminDialog({
+    title:status==="approved"?"Approve Moderator":"Reject Moderator",
+    subtitle:"Record an optional decision note.",
+    confirmText:status==="approved"?"Approve":"Reject",
+    fields:[{key:"note",label:"Decision note",type:"textarea",placeholder:"Optional note",wide:true}]
+  });
+  if(!result)return;
+  const j=await staffPost({action:"review_application",id,status,reviewer_notes:result.note||""});
+  if(j){toast(status==="approved"?"Moderator approved.":"Application rejected.");renderAdminTab();}
+}
+async function setStaffActive(userId,active){
+  const result=await openAdminDialog({
+    title:active?"Restore Staff":"Remove Staff",
+    subtitle:active?"Restore this staff member's access.":"Remove this staff member's active access.",
+    confirmText:active?"Restore":"Remove",
+    fields:[{key:"reason",label:"Reason",type:"textarea",placeholder:"Optional reason",wide:true}]
+  });
+  if(!result)return;
+  const j=await staffPost({action:"set_active",user_id:userId,active,reason:result.reason||""});
+  if(j){toast(active?"Staff restored.":"Staff removed.");renderAdminTab();}
+}
+async function loadModeratorTools(){
+  const box=$("moderationQueue"),toolsBox=$("moderatorTools");
+  if(!box||!toolsBox)return;
+  const d=await staffFetch("moderation");
+  if(!d){toolsBox.style.display="none";return}
+  toolsBox.style.display="block";
+  const submissions=(d.submissions||[]).map(x=>`<div class="admin-card" style="margin-top:8px"><h3>${escapeHTML(x.level_name||"Unnamed level")}</h3><p>By ${escapeHTML(x.creator||"Unknown")} · GD #${escapeHTML(x.gd_level_id)}</p><div class="mini-actions" style="margin-top:10px"><button class="mini success" onclick="moderatorReviewSubmission('${escapeHTML(x.id)}','approved')">Approve</button><button class="mini danger" onclick="moderatorReviewSubmission('${escapeHTML(x.id)}','rejected')">Reject</button><button class="mini" onclick="moderatorReviewSubmission('${escapeHTML(x.id)}','needs_review')">Needs review</button></div></div>`).join("");
+  const reports=(d.reports||[]).map(x=>`<div class="admin-card" style="margin-top:8px"><h3>Profile report #${x.id}</h3><p>${escapeHTML(x.reason||"No reason")} · ${escapeHTML(x.details||"")}</p><div class="mini-actions" style="margin-top:10px"><button class="mini success" onclick="moderatorReviewReport(${Number(x.id)},'resolved')">Resolve</button><button class="mini" onclick="moderatorReviewReport(${Number(x.id)},'dismissed')">Dismiss</button></div></div>`).join("");
+  box.innerHTML=(submissions?'<div><b>Pending level submissions</b>'+submissions+'</div>':'')+(reports?'<div style="margin-top:16px"><b>Pending profile reports</b>'+reports+'</div>':'')||'<div class="empty">No moderation work is waiting.</div>';
+}
+async function moderatorReviewSubmission(id,status){
+  const result=await openAdminDialog({title:"Review Submission",subtitle:"Optional moderation note.",confirmText:"Save",fields:[{key:"note",label:"Note",type:"textarea",placeholder:"Optional",wide:true}]});
+  if(!result)return;
+  const j=await staffPost({action:"moderator_review_submission",id,status,reviewer_notes:result.note||""});
+  if(j){toast("Submission updated.");loadModeratorTools();}
+}
+async function moderatorReviewReport(id,status){
+  const result=await openAdminDialog({title:"Review Profile Report",subtitle:"Optional moderation note.",confirmText:"Save",fields:[{key:"note",label:"Note",type:"textarea",placeholder:"Optional",wide:true}]});
+  if(!result)return;
+  const j=await staffPost({action:"moderator_review_report",id,status,reviewer_note:result.note||""});
+  if(j){toast("Profile report updated.");loadModeratorTools();}
+}
+async function renderStaffAdminTab(tab){
+  const box=$("adminContent");
+  if(tab==="staff-applications"){
+    const d=await staffFetch("applications"); if(!d)return;
+    const pending=d.filter(x=>x.status==="pending");
+    box.innerHTML=`<div class="panel"><h3 style="margin-top:0">Staff Applications</h3><p class="muted">${pending.length} pending moderator application${pending.length===1?"":"s"}.</p>${pending.length?pending.map(a=>`<div class="admin-card" style="margin-top:10px"><h3>${escapeHTML(a.possible_username||"Unknown")} <span class="tag">MODERATOR</span></h3><p><b>GD:</b> ${escapeHTML(a.gd_username||"—")}</p><p style="margin-top:8px"><b>Why:</b> ${escapeHTML(a.reason||"—")}</p><p style="margin-top:8px"><b>Good moderator:</b> ${escapeHTML(a.experience||"—")}</p><p style="margin-top:8px"><b>Previous experience:</b> ${escapeHTML(a.discord_username||"Not supplied")}</p><p style="margin-top:8px"><b>Availability:</b> ${escapeHTML(a.availability||"—")}</p><p class="person-sub" style="margin-top:8px">Submitted ${new Date(a.created_at).toLocaleString()}</p><div class="mini-actions" style="margin-top:10px"><button class="mini success" onclick="reviewStaffApplication('${escapeHTML(a.id)}','approved')">Accept</button><button class="mini danger" onclick="reviewStaffApplication('${escapeHTML(a.id)}','rejected')">Reject</button></div></div>`).join(""):'<div class="empty">No pending moderator applications.</div>'}</div>`;
+    return;
+  }
+  if(tab==="staff-management"){
+    const d=await staffFetch("staff"); if(!d)return;
+    box.innerHTML=`<div class="panel"><h3 style="margin-top:0">Staff Management</h3><p class="muted">Active staff members and their roles.</p>${d.map(s=>`<div class="admin-row"><div><b>${escapeHTML(String(s.role||"").replaceAll("_"," ").toUpperCase())}</b><div class="person-sub">${escapeHTML(s.user_id)}</div></div><div class="mini-actions">${s.role==="owner"?'<span class="tag">PROTECTED</span>':`<button class="mini danger" onclick="setStaffActive('${escapeHTML(s.user_id)}',false)">Remove</button>`}</div></div>`).join("")||'<div class="empty">No staff members.</div>'}</div>`;
+    return;
+  }
+  if(tab==="staff-actions"){
+    const d=await staffFetch("actions"); if(!d)return;
+    box.innerHTML=`<div class="panel"><h3 style="margin-top:0">Staff History</h3>${d.map(a=>`<div class="admin-row"><div><b>${escapeHTML(a.action||"Action")}</b><div class="person-sub">Target ${escapeHTML(a.target_user_id||"—")} · Actor ${escapeHTML(a.actor_user_id||"—")}</div></div><div class="person-sub">${new Date(a.created_at).toLocaleString()}</div></div>`).join("")||'<div class="empty">No staff actions recorded.</div>'}</div>`;
+  }
+}
 function renderAdminTab(){
   const d=adminState.data||{};
   const box=$("adminContent");
@@ -1222,6 +1289,10 @@ function renderAdminTab(){
         </div>
       </div>`;
     return;
+  }
+
+  if(["staff-applications","staff-management","staff-actions"].includes(adminState.tab)){
+    renderStaffAdminTab(adminState.tab); return;
   }
 
   if(adminState.tab==="levels"){
