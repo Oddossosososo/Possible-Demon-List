@@ -433,7 +433,7 @@
       <iframe id="videoFrame" title="Possible level video"
         allow="autoplay; encrypted-media; picture-in-picture"
         allowfullscreen></iframe>
-      <button class="video-start-hint" id="videoStartHint" type="button">🖱️ Click / 👆 Tap the video to start</button>
+      <button class="video-start-hint" id="videoStartHint" type="button">Please move your mouse or finger off the video to watch</button>
       <div class="video-lock video-lock-top" aria-hidden="true"></div>
       <div class="video-lock video-lock-left" aria-hidden="true"></div>
       <div class="video-lock video-lock-bottom-mid" aria-hidden="true"></div>
@@ -639,8 +639,8 @@ function setupVideoPlayer(id){
     events:{
       onReady:()=>{
         videoStarted=false;
-        $("videoStartHint").classList.remove("hidden");
-        try{videoPlayer.pauseVideo()}catch{}
+        $("videoStartHint").classList.add("hidden");
+        try{videoPlayer.playVideo()}catch{}
         updateVideoSeek();
         clearInterval(videoTicker);
         videoTicker=setInterval(updateVideoSeek,250);
@@ -649,9 +649,6 @@ function setupVideoPlayer(id){
         updateVideoSeek();
         if(e.data===YT.PlayerState.PLAYING){
           videoStarted=true;
-          $("videoStartHint").classList.add("hidden");
-        }else if(e.data===YT.PlayerState.PAUSED || e.data===YT.PlayerState.ENDED){
-          if(!videoStarted) $("videoStartHint").classList.remove("hidden");
         }
       },
       onError:e=>{
@@ -688,13 +685,24 @@ function closeVideo(){
 window.onYouTubeIframeAPIReady=()=>{
   if(videoPendingId)setupVideoPlayer(videoPendingId);
 };
-$("videoStartHint").onclick=()=>{
-  if(videoPlayer && typeof videoPlayer.playVideo==="function"){
-    videoStarted=true;
-    $("videoStartHint").classList.add("hidden");
-    videoPlayer.playVideo();
-  }
+$("videoStartHint").onclick=(e)=>{
+  e.preventDefault();
+  e.stopPropagation();
 };
+const videoWrap=$("videoFrame")?.parentElement;
+if(videoWrap){
+  const showPointerWarning=()=>{
+    $("videoStartHint").textContent="Please move your mouse or finger off the video to watch";
+    $("videoStartHint").classList.remove("hidden");
+  };
+  const hidePointerWarning=()=>{
+    $("videoStartHint").classList.add("hidden");
+  };
+  videoWrap.addEventListener("mouseenter",showPointerWarning);
+  videoWrap.addEventListener("mouseleave",hidePointerWarning);
+  videoWrap.addEventListener("touchstart",showPointerWarning,{passive:true});
+  videoWrap.addEventListener("touchend",()=>setTimeout(hidePointerWarning,700),{passive:true});
+}
 $("videoSeek").addEventListener("input",e=>{
   if(videoPlayer && typeof videoPlayer.seekTo==="function"){
     videoPlayer.seekTo(Number(e.target.value)||0,true);
