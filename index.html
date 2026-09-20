@@ -1322,7 +1322,7 @@ async function moderatorReviewReport(id,status){
   const j=await staffPost({action:"moderator_review_report",id,status,reviewer_note:result.note||""});
   if(j){toast("Profile report updated.");loadModeratorTools();}
 }
-async function renderStaffAdminTab(tab){
+async async function renderStaffAdminTab(tab){
   const box=$("adminContent");
   if(tab==="staff-applications"){
     const d=await staffFetch("applications"); if(!d)return;
