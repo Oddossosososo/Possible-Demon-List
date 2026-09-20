@@ -201,7 +201,7 @@
     <section class="view active" id="view-rankings">
       <div class="section-head">
         <div><h2>Possible But Unbeaten</h2><p>Live from the Possible database.</p></div>
-        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end"><span id="liveStatus" class="status" style="margin:0">CONNECTING…</span><span id="levelCount">0 levels</span></div>
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end"><span id="levelCount">0 levels</span></div>
       </div>
       <div id="rankings" class="cards"><div class="empty">Loading Possible…</div></div>
     </section>
@@ -520,7 +520,6 @@ $("adminDialogSubmit").onclick=()=>{
   closeAdminDialog(result);
 };
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("adminDialog")?.classList.contains("show"))closeAdminDialog();if($("videoModal")?.classList.contains("show"))closeVideo();}});
-function setLiveStatus(text,ok=true){const x=$("liveStatus");if(!x)return;x.textContent=text;x.style.color=ok?"#8ce9bc":"#ffbf7a";x.style.borderColor=ok?"#6de0a533":"#ffd36d33";x.style.background=ok?"#6de0a508":"#ffd36d08";}
 const fmtTime = v => { try { return new Date(v).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}); } catch { return v; } };
 function youtubeId(url){
   const s=String(url||"").trim();
@@ -1333,7 +1332,7 @@ const channel=sb.channel("possible-live")
   .on("postgres_changes",{event:"*",schema:"public",table:"creators"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"players"},()=>loadCommunity())
   .on("postgres_changes",{event:"*",schema:"public",table:"staff_members"},()=>loadStaff())
-  .subscribe((status)=>{setLiveStatus(status==="SUBSCRIBED"?"● LIVE":"● "+status,status==="SUBSCRIBED");});
+  .subscribe();
 
 async function loadAccount(){
   const s=await session();
