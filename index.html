@@ -603,7 +603,7 @@ const fmtTime = v => { try { return new Date(v).toLocaleString([], {dateStyle:"m
 function youtubeId(url){
   const s=String(url||"").trim();
   if(!s)return "";
-  const m=s.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+  const m=s.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
   return m?m[1]:"";
 }
 function youtubeThumbnail(url){
@@ -641,16 +641,20 @@ function setupVideoPlayer(id){
     videoId:id,
     playerVars:{
       autoplay:1,controls:0,disablekb:1,fs:0,rel:0,playsinline:1,
-      modestbranding:1
+      modestbranding:1,enablejsapi:1,origin:location.origin
     },
     events:{
       onReady:e=>{
-        e.target.playVideo();
+        try{e.target.mute();e.target.playVideo()}catch{}
         updateVideoSeek();
         clearInterval(videoTicker);
         videoTicker=setInterval(updateVideoSeek,250);
       },
-      onStateChange:()=>updateVideoSeek()
+      onStateChange:()=>updateVideoSeek(),
+      onError:e=>{
+        console.error("Possible video player error:",e?.data);
+        toast("YouTube couldn't play this video.");
+      }
     }
   });
 }
