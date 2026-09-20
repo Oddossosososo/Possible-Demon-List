@@ -862,12 +862,15 @@ function renderAdminTab(){
                 <div class="person-sub">${linked ? "YouTube linked · "+escapeHTML(p.youtube_handle||p.youtube_channel_id) : "No trusted YouTube channel linked"}</div>
               </div>
               <div class="mini-actions">
-                <button class="mini ${linked?"success":""}" onclick="linkCreatorYouTube(${JSON.stringify(name)})">${linked?"Change YouTube":"Link YouTube"}</button>
+                <button class="mini ${linked?"success":""}" data-link-creator="${escapeHTML(name)}">${linked?"Change YouTube":"Link YouTube"}</button>
               </div>
             </div>`;
           }).join("") || '<div class="empty">No creators yet.</div>'}
         </div>
       </div>`;
+    box.querySelectorAll("[data-link-creator]").forEach(btn=>{
+      btn.onclick=()=>linkCreatorYouTube(btn.dataset.linkCreator||"");
+    });
     return;
   }
 }
