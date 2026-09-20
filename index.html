@@ -62,6 +62,9 @@
     .level-name{font-weight:950;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .level-meta{margin-top:5px;color:#727d91;font-size:13px}
     .level-id{margin-top:4px;color:#586277;font-size:11px}
+    .level-wr{margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:9px;
+      background:#6de0a50d;border:1px solid #6de0a52b;color:#8ce9bc;font-size:11px;font-weight:900}
+    .level-wr span{color:#647087;font-weight:800}
     .status{margin-left:auto;flex:none;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:#ffffff07;
       color:#8f98aa;font-size:11px;font-weight:900}
     .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -394,7 +397,7 @@ function youtubeId(url){
 }
 function youtubeThumbnail(url){
   const id=youtubeId(url);
-  return id ? "https://img.youtube.com/vi/"+id+"/hqdefault.jpg" : "";
+  return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
 
 function showView(name){
@@ -429,6 +432,7 @@ async function loadLevels(){
           <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
           <div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div>
           <div class="level-id">GD ID ${escapeHTML(l.gd_level_id)}</div>
+          ${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':''}
         </div>
         <div class="status">UNBEATEN</div>
       </article>`).join("") : '<div class="empty">No levels are currently on Possible.</div>';
@@ -856,6 +860,7 @@ window.editLevel=async(id)=>{
       {key:"name",label:"Level name",value:x.name},
       {key:"creator",label:"Creator",value:x.creator},
       {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
+      {key:"current_wr",label:"Current WR",value:x.current_wr||""},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
       {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
       {key:"thumbnail_url",label:"Thumbnail URL (optional)",value:x.thumbnail_url||""},
@@ -870,6 +875,7 @@ window.editLevel=async(id)=>{
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j2=await adminPost({
     action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,
+    current_wr:result.current_wr?.trim()||"",
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:result.thumbnail_url?.trim()||autoThumb,notes:result.notes||""
   });
@@ -883,6 +889,7 @@ window.createLevel=async()=>{
     confirmText:"Add level",
     fields:[
       {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"12345678"},
+      {key:"current_wr",label:"Current WR",placeholder:"Player name / record"},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
       {key:"verification_url",label:"YouTube / Verification URL",placeholder:"https://youtube.com/watch?v=...",wide:true},
@@ -898,6 +905,7 @@ window.createLevel=async()=>{
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j=await adminPost({
     action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),
+    current_wr:result.current_wr?.trim()||"",
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:autoThumb,notes:result.notes||""
   });
