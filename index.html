@@ -737,7 +737,7 @@ async function loadLevels(){
           <div class="level-id">GD ID ${escapeHTML(l.gd_level_id)}</div>
           ${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':''}
         </div>
-        <button class="showcase-bar" type="button" onclick="watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="${escapeHTML(l.verification_url||"")}" data-title="${escapeHTML(l.name||"Level")}"><span>▶</span> WATCH SHOWCASE</button>
+        
         </div>
         <div class="status">UNBEATEN</div>
       </article>`).join("") : '<div class="empty">No levels are currently on Possible.</div>';
