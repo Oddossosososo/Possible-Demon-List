@@ -692,17 +692,18 @@ function closeVideo(){
 window.onYouTubeIframeAPIReady=()=>{};
 const videoWrap=$("videoFrame")?.parentElement;
 if(videoWrap){
-  const showPointerWarning=()=>{
-    $("videoStartHint").textContent="Please move your mouse or finger off the video to watch";
-    $("videoStartHint").classList.remove("hidden");
+  const pauseVideoForTouch=()=>{
+    if(videoPlayer && typeof videoPlayer.pauseVideo==="function"){
+      try{videoPlayer.pauseVideo()}catch{}
+    }
   };
-  const hidePointerWarning=()=>{
-    $("videoStartHint").classList.add("hidden");
+  const resumeVideoAfterTouch=()=>{
+    if(videoPlayer && typeof videoPlayer.playVideo==="function"){
+      try{videoPlayer.playVideo()}catch{}
+    }
   };
-  videoWrap.addEventListener("mouseenter",showPointerWarning);
-  videoWrap.addEventListener("mouseleave",hidePointerWarning);
-  videoWrap.addEventListener("touchstart",showPointerWarning,{passive:true});
-  videoWrap.addEventListener("touchend",()=>setTimeout(hidePointerWarning,700),{passive:true});
+  videoWrap.addEventListener("touchstart",pauseVideoForTouch,{passive:true});
+  videoWrap.addEventListener("touchend",()=>setTimeout(resumeVideoAfterTouch,250),{passive:true});
 }
 $("videoSeek").addEventListener("input",e=>{
   if(videoPlayer && typeof videoPlayer.seekTo==="function"){
