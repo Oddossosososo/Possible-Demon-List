@@ -261,7 +261,7 @@
       <div class="panel">
         <div class="kicker" style="margin-bottom:12px">HISTORICAL VIEW</div>
         <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
-          <div style="min-width:220px;flex:1"><label for="tmDate">Snapshot date</label><input id="tmDate" type="date"></div>
+          <div style="min-width:220px;flex:1"><label for="tmDate">Snapshot date & time</label><input id="tmDate" type="datetime-local"></div>
           <button class="primary" id="tmLoad">Load Snapshot</button>
           <button class="secondary" id="tmLive">Return to Live</button>
         </div>
@@ -835,7 +835,7 @@ function initTimeMachine(){
   if(__tmReady)return;
   __tmReady=true;
   const d=$("tmDate");
-  d.max=new Date().toISOString().slice(0,10);
+  d.max=new Date().toISOString().slice(0,16);
   $("tmLoad").onclick=loadTimeMachine;
   $("tmLive").onclick=()=>showView("rankings");
 }
@@ -846,7 +846,10 @@ async function loadTimeMachine(){
   state.textContent="Loading historical snapshot…";
   out.innerHTML="";
   try{
-    const r=await fetch(API.levels+"?at="+encodeURIComponent(date)+"&t="+Date.now(),{cache:"no-store"});
+    const localDate=new Date(date);
+    if(Number.isNaN(localDate.getTime())){state.textContent="Select a valid snapshot time first.";return;}
+    const at=localDate.toISOString();
+    const r=await fetch(API.levels+"?at="+encodeURIComponent(at)+"&t="+Date.now(),{cache:"no-store"});
     const json=await r.json();
     if(!r.ok)throw new Error(json?.error||"Snapshot unavailable");
     const levels=Array.isArray(json)?json:(json.data||[]);
@@ -854,7 +857,7 @@ async function loadTimeMachine(){
       state.textContent="No recorded snapshot is available for that date.";
       return;
     }
-    state.textContent="Historical snapshot • "+date+" • "+levels.length+" levels";
+    state.textContent="Historical snapshot • "+localDate.toLocaleString()+" • "+levels.length+" levels";
     out.innerHTML=levels.map((l,i)=>`<article class="level">
       <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
       <div class="level-main">
