@@ -411,6 +411,26 @@ const API = {
 
 const $ = id => document.getElementById(id);
 const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function normalizeCurrentWR(value){
+  let s=String(value??"").trim();
+  if(!s)return "";
+  if(/^\d+(?:\.\d+)?%?$/.test(s)) return s.endsWith("%")?s:s+"%";
+  if(/(?:^|\s)(\d+(?:\.\d+)?)$/.test(s)) return s+"%";
+  if(/(?:^|\s)(\d+(?:\.\d+)?)\s*%$/.test(s)) return s;
+  return s;
+}
+function bindPercentInput(){
+  document.querySelectorAll('#adminDialogBody input[data-normalize="percent"]').forEach(el=>{
+    el.addEventListener("input",()=>{
+      const raw=String(el.value||"");
+      if(/^\d+(?:\.\d+)?$/.test(raw.trim())) el.value=raw.trim()+"%";
+      else {
+        const m=raw.match(/^(.*\s)(\d+(?:\.\d+)?)$/);
+        if(m) el.value=m[1]+m[2]+"%";
+      }
+    });
+  });
+}
 const toast = msg => { const x=$("toast"); x.textContent=msg; x.classList.add("show"); clearTimeout(window.__toast); window.__toast=setTimeout(()=>x.classList.remove("show"),3000); };
 
 function debounce(fn,ms=450){
@@ -479,7 +499,11 @@ function openAdminDialog({title,subtitle="",fields=[],confirmText="Save",danger=
           : `<input data-dialog-index="${i}" type="${f.type||"text"}" value="${escapeHTML(f.value??"")}" placeholder="${escapeHTML(f.placeholder||"")}">`}
       </div>`).join("")+'</div>';
 
+    body.querySelectorAll('input[data-dialog-index],textarea[data-dialog-index]').forEach((el,i)=>{
+      if(fields[i]?.normalize) el.dataset.normalize=fields[i].normalize;
+    });
     $("adminDialog").classList.add("show");
+    bindPercentInput();
     const first=body.querySelector("input,textarea");
     setTimeout(()=>first?.focus(),0);
   });
@@ -1091,27 +1115,26 @@ function renderAdminTab(){
     const rows=[...names.values()].sort((a,b)=>a.localeCompare(b));
     box.innerHTML=`
       <div class="panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div><h3 style="margin:0">Creator Profiles</h3><div class="person-sub">Profiles are generated from levels. Link an exact YouTube channel once to keep the avatar trusted.</div></div>
-        </div>
+        <div><h3 style="margin:0">Creator Profiles</h3><div class="person-sub">Creators are generated from levels. Edit the trusted YouTube @handle directly.</div></div>
         <div style="margin-top:12px">
           ${rows.map(name=>{
             const p=stored.get(name.toLowerCase());
-            const linked=!!p?.youtube_channel_id;
+            const handle=String(p?.youtube_handle||"").trim() ||
+              ((String(p?.youtube_url||"").match(/youtube\.com\/@([^/?#]+)/i)||[])[1] ? "@"+String(p.youtube_url).match(/youtube\.com\/@([^/?#]+)/i)[1] : "");
             return `<div class="admin-row">
               <div>
                 <b>${escapeHTML(name)}</b>
-                <div class="person-sub">${linked ? "YouTube linked · "+escapeHTML(p.youtube_handle||p.youtube_channel_id) : "No trusted YouTube channel linked"}</div>
+                <div class="person-sub">${handle ? "YouTube · "+escapeHTML(handle) : "No @handle set"}</div>
               </div>
               <div class="mini-actions">
-                <button class="mini ${linked?"success":""}" data-link-creator="${escapeHTML(name)}">Edit Profile</button>
+                <button class="mini ${handle?"success":""}" data-edit-creator="${escapeHTML(name)}">Edit Profile</button>
               </div>
             </div>`;
           }).join("") || '<div class="empty">No creators yet.</div>'}
         </div>
       </div>`;
-    box.querySelectorAll("[data-link-creator]").forEach(btn=>{
-      btn.onclick=()=>linkCreatorYouTube(btn.dataset.linkCreator||"");
+    box.querySelectorAll("[data-edit-creator]").forEach(btn=>{
+      btn.onclick=()=>editCreatorProfile(btn.dataset.editCreator||"");
     });
     return;
   }
@@ -1218,35 +1241,29 @@ window.editPlayerProfile=async(username)=>{
   }
 };
 
-window.linkCreatorYouTube=async(username)=>{
+window.editCreatorProfile=async(username)=>{
+  const p=(adminState.data?.creators||[]).find(x=>String(x.username||"").trim().toLowerCase()===String(username||"").trim().toLowerCase())||{};
+  let current=String(p.youtube_handle||"").trim();
+  if(!current){
+    const m=String(p.youtube_url||"").match(/youtube\.com\/@([^/?#]+)/i);
+    if(m) current="@"+m[1];
+  }
   const result=await openAdminDialog({
-    title:"Link YouTube",
-    subtitle:"Link an exact YouTube channel to "+username+". Use a /channel/UC... URL so another account cannot hijack the profile.",
-    confirmText:"Link channel",
-    fields:[
-      {key:"youtube_url",label:"Exact YouTube channel URL",placeholder:"https://www.youtube.com/channel/UC...",wide:true},
-      {key:"youtube_handle",label:"Channel handle",placeholder:"@example"}
-    ]
+    title:"Edit Creator Profile",
+    subtitle:"Set the YouTube @handle for "+username+".",
+    confirmText:"Save Profile",
+    fields:[{key:"youtube_handle",label:"YouTube @handle",value:current,placeholder:"@example",wide:true}]
   });
   if(!result)return;
-
-  const url=String(result.youtube_url||"").trim();
-  const match=url.match(/^https?:\/\/(?:www\.)?youtube\.com\/channel\/(UC[A-Za-z0-9_-]{20,})(?:[/?#].*)?$/i);
-  if(!match){
-    toast("Use the exact YouTube /channel/UC... URL.");
+  let handle=String(result.youtube_handle||"").trim();
+  if(handle && !handle.startsWith("@")) handle="@"+handle;
+  if(handle && !/^@[A-Za-z0-9._-]{2,30}$/.test(handle)){
+    toast("Enter a valid YouTube @handle.");
     return;
   }
-
-  const channelId=match[1];
-  const j=await adminPost({
-    action:"link_creator_youtube",
-    username,
-    youtube_url:url,
-    youtube_channel_id:channelId,
-    youtube_handle:String(result.youtube_handle||"").trim()
-  });
+  const j=await adminPost({action:"link_creator_youtube",username,youtube_url:handle?"https://www.youtube.com/"+handle:"",youtube_channel_id:"",youtube_handle:handle});
   if(j){
-    toast("YouTube profile linked.");
+    toast("Creator profile updated.");
     adminState.data=null;
     loadAdmin();
     loadCommunity();
@@ -1314,7 +1331,7 @@ window.editLevel=async(id)=>{
       {key:"name",label:"Level name",value:x.name},
       {key:"creator",label:"Creator",value:x.creator},
       {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
-      {key:"current_wr",label:"Current WR",value:x.current_wr||""},
+      {key:"current_wr",label:"Current WR",value:x.current_wr||"",normalize:"percent"},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
       {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
       {key:"thumbnail_url",label:"Thumbnail URL (optional)",value:x.thumbnail_url||""},
@@ -1329,7 +1346,7 @@ window.editLevel=async(id)=>{
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j2=await adminPost({
     action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,
-    current_wr:result.current_wr?.trim()||"",
+    current_wr:normalizeCurrentWR(result.current_wr),
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:result.thumbnail_url?.trim()||autoThumb,notes:result.notes||""
   });
@@ -1343,7 +1360,7 @@ window.createLevel=async()=>{
     confirmText:"Add level",
     fields:[
       {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"Auto-filled from level name",readonly:true},
-      {key:"current_wr",label:"Current WR",placeholder:"Player name / record"},
+      {key:"current_wr",label:"Current WR",placeholder:"Player name / record",normalize:"percent"},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
       {key:"verification_url",label:"YouTube / Verification URL",placeholder:"https://youtube.com/watch?v=...",wide:true},
@@ -1369,7 +1386,7 @@ window.createLevel=async()=>{
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j=await adminPost({
     action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),
-    current_wr:result.current_wr?.trim()||"",
+    current_wr:normalizeCurrentWR(result.current_wr),
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:autoThumb,notes:result.notes||""
   });
