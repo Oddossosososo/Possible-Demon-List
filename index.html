@@ -53,9 +53,11 @@
       position:relative;border:1px solid var(--line);
       background:linear-gradient(110deg,#131824,#0c1018);
       box-shadow:0 10px 34px #0004;transition:.18s;
-      border-radius:0;
+      border-radius:22px;
       overflow:hidden;
-      clip-path:path("M 22 0 C 9 0 0 9 0 22 L 0 66 C 0 79 9 88 22 88 L 1000 88 C 1013 88 1022 79 1022 66 L 1022 22 C 1022 9 1013 0 1000 0 Z");
+      clip-path:none;
+      -webkit-mask-image:radial-gradient(ellipse 120% 150% at 50% 50%,#000 99%,transparent 100%);
+      mask-image:radial-gradient(ellipse 120% 150% at 50% 50%,#000 99%,transparent 100%);
     }
     .level:hover{transform:translateY(-2px);border-color:#8190ff45;box-shadow:0 15px 42px #0006,0 0 25px #8190ff0f}
     .rank{width:52px;flex:0 0 52px;text-align:center;font-size:22px;font-weight:1000;line-height:1;color:#7e889d}
