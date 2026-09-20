@@ -1091,7 +1091,7 @@ function renderAdminTab(){
                 <div class="person-sub">${linked ? "YouTube linked · "+escapeHTML(p.youtube_handle||p.youtube_channel_id) : "No trusted YouTube channel linked"}</div>
               </div>
               <div class="mini-actions">
-                <button class="mini ${linked?"success":""}" data-link-creator="${escapeHTML(name)}">${linked?"Change YouTube":"Link YouTube"}</button>
+                <button class="mini ${linked?"success":""}" data-link-creator="${escapeHTML(name)}">Edit Profile</button>
               </div>
             </div>`;
           }).join("") || '<div class="empty">No creators yet.</div>'}
@@ -1127,7 +1127,7 @@ function renderAdminTab(){
     const rows=[...names.values()].sort((a,b)=>a.localeCompare(b));
     box.innerHTML=`
       <div class="panel">
-        <div><h3 style="margin:0">Player Profiles</h3><div class="person-sub">Players are generated from Current WRs. You can override the YouTube profile with an exact URL.</div></div>
+        <div><h3 style="margin:0">Player Profiles</h3><div class="person-sub">Players are generated from Current WRs. Edit the trusted YouTube @handle directly.</div></div>
         <div style="margin-top:12px">
           ${rows.map(name=>{
             const p=stored.get(name.toLowerCase());
@@ -1138,14 +1138,14 @@ function renderAdminTab(){
                 <div class="person-sub">${linked ? "YouTube linked · "+escapeHTML(p.youtube_handle||p.youtube_channel_id||p.youtube_url) : "No YouTube profile linked"}</div>
               </div>
               <div class="mini-actions">
-                <button class="mini ${linked?"success":""}" data-link-player="${escapeHTML(name)}">${linked?"Change YouTube":"Link YouTube"}</button>
+                <button class="mini ${linked?"success":""}" data-edit-player="${escapeHTML(name)}">${linked?"Change YouTube":"Link YouTube"}</button>
               </div>
             </div>`;
           }).join("") || '<div class="empty">No players yet.</div>'}
         </div>
       </div>`;
-    box.querySelectorAll("[data-link-player]").forEach(btn=>{
-      btn.onclick=()=>linkPlayerYouTube(btn.dataset.linkPlayer||"");
+    box.querySelectorAll("[data-edit-player]").forEach(btn=>{
+      btn.onclick=()=>editPlayerProfile(btn.dataset.editPlayer||"");
     });
     return;
   }
@@ -1176,37 +1176,29 @@ window.reviewSubmission=async(id,status)=>{
   if(j){toast("Submission updated."); adminState.data=null; loadAdmin();}
 };
 
-window.linkPlayerYouTube=async(username)=>{
+window.editPlayerProfile=async(username)=>{
+  const p=(adminState.data?.players||[]).find(x=>String(x.username||"").trim().toLowerCase()===String(username||"").trim().toLowerCase())||{};
+  let current=String(p.youtube_handle||"").trim();
+  if(!current){
+    const m=String(p.youtube_url||"").match(/youtube\.com\/@([^/?#]+)/i);
+    if(m) current="@"+m[1];
+  }
   const result=await openAdminDialog({
-    title:"YouTube Override",
-    subtitle:"Point "+username+" to any exact YouTube channel URL. Possible will not guess from the username.",
-    confirmText:"Save YouTube",
-    fields:[
-      {key:"youtube_url",label:"Exact YouTube channel URL",placeholder:"https://www.youtube.com/@channel",wide:true},
-      {key:"youtube_handle",label:"Channel handle (optional)",placeholder:"@example"}
-    ]
+    title:"Edit Player Profile",
+    subtitle:"Set the YouTube @handle for "+username+".",
+    confirmText:"Save Profile",
+    fields:[{key:"youtube_handle",label:"YouTube @handle",value:current,placeholder:"@example",wide:true}]
   });
   if(!result)return;
-
-  const url=String(result.youtube_url||"").trim();
-  const ok=/^https?:\/\/(?:www\.)?youtube\.com\/(channel\/UC[A-Za-z0-9_-]+|@[^\s/?]+|c\/[^\s/?]+|user\/[^\s/?]+)(?:[/?#].*)?$/i.test(url);
-  if(!ok){
-    toast("Enter a valid exact YouTube channel URL.");
+  let handle=String(result.youtube_handle||"").trim();
+  if(handle && !handle.startsWith("@")) handle="@"+handle;
+  if(handle && !/^@[A-Za-z0-9._-]{2,30}$/.test(handle)){
+    toast("Enter a valid YouTube @handle.");
     return;
   }
-
-  const channelMatch=url.match(/youtube\.com\/channel\/(UC[A-Za-z0-9_-]+)/i);
-  const handleMatch=url.match(/youtube\.com\/@([^/?#]+)/i);
-
-  const j=await adminPost({
-    action:"link_player_youtube",
-    username,
-    youtube_url:url,
-    youtube_channel_id:channelMatch?channelMatch[1]:"",
-    youtube_handle:String(result.youtube_handle||"").trim() || (handleMatch ? "@"+handleMatch[1] : "")
-  });
+  const j=await adminPost({action:"link_player_youtube",username,youtube_url:handle?"https://www.youtube.com/"+handle:"",youtube_channel_id:"",youtube_handle:handle});
   if(j){
-    toast("Player YouTube profile linked.");
+    toast("Player profile updated.");
     adminState.data=null;
     loadAdmin();
     loadCommunity();
