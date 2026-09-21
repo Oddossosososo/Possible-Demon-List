@@ -728,6 +728,7 @@ function closeVideo(){
   $("videoTime").textContent="0:00 / 0:00";
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
 }
 window.onYouTubeIframeAPIReady=()=>{};
 const videoWrap=$("videoFrame")?.parentElement;
