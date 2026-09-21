@@ -779,7 +779,7 @@ if(videoPauseButton){
 }
 $("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
 
-async function showView(name){
+async async function showView(name){
   if(name==="admin"){
     const s=await session();
     if(!s || !(await checkAdmin(s))){
@@ -1355,7 +1355,7 @@ async function moderatorReviewReport(id,status){
   const j=await staffPost({action:"moderator_review_report",id,status,reviewer_note:result.note||""});
   if(j){toast("Profile report updated.");loadModeratorTools();}
 }
-async async function renderStaffAdminTab(tab){
+async async async function renderStaffAdminTab(tab){
   const box=$("adminContent");
   if(tab==="staff-applications"){
     const d=await staffFetch("applications"); if(!d)return;
