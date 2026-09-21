@@ -534,7 +534,13 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
 const SUPABASE_URL = "https://pzjnoahhugdtdqlscvgp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TN3lOfoZFNGY7A7-CtBXbw_JqUCRnvF";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+    storageKey: "possible-auth-session"
+  }
 });
 
 const API = {
