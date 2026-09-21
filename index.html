@@ -537,9 +537,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storage: window.localStorage,
-    storageKey: "possible-auth-session"
+    detectSessionInUrl: true
   }
 });
 
@@ -1195,11 +1193,16 @@ $("authBtn").onclick=async()=>{
   openLogin();
 };
 sb.auth.onAuthStateChange((event,authSession)=>{
-  // Do not call Supabase queries directly inside the auth callback.
-  // Supabase can still be updating its session storage at this point.
-  __sessionCache=authSession||null;
-  __sessionCacheAt=Date.now();
-  setTimeout(()=>refreshAuth(),0);
+  // Never replace a valid cached session with a transient null INITIAL_SESSION.
+  // Let getSession() be the source of truth after Supabase finishes restoring storage.
+  if(event==="SIGNED_OUT"){
+    __sessionCache=null;
+    __sessionCacheAt=Date.now();
+  }else if(authSession){
+    __sessionCache=authSession;
+    __sessionCacheAt=Date.now();
+  }
+  setTimeout(()=>refreshAuth(),50);
 });
 
 $("submitStaff").onclick=async()=>{
