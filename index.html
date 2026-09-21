@@ -1035,20 +1035,29 @@ async function loadTimeMachine(){
 let __sessionCache=null;
 let __sessionCacheAt=0;
 let __sessionPromise=null;
+let __authRefreshSeq=0;
 
 async function session(force=false){
-  if(!force && __sessionCacheAt && Date.now()-__sessionCacheAt<5000) return __sessionCache;
+  if(!force && __sessionCacheAt && Date.now()-__sessionCacheAt<3000) return __sessionCache;
   if(__sessionPromise && !force) return __sessionPromise;
-  __sessionPromise=(async()=>{
-    const {data}=await sb.auth.getSession();
-    __sessionCache=data.session||null;
+  const request=(async()=>{
+    const {data,error}=await sb.auth.getSession();
+    if(error) throw error;
+    const live=data?.session||null;
+    __sessionCache=live;
     __sessionCacheAt=Date.now();
-    return __sessionCache;
+    return live;
   })();
-  try{return await __sessionPromise}finally{__sessionPromise=null}
+  if(!force) __sessionPromise=request;
+  try{return await request}
+  finally{if(!force) __sessionPromise=null}
 }
-async function refreshAuth(){
-  const s=await session();
+
+async function refreshAuth(force=false){
+  const seq=++__authRefreshSeq;
+  let s=null;
+  try{s=await session(!!force)}catch(e){console.error("Possible auth session check failed:",e)}
+  if(seq!==__authRefreshSeq)return;
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
   if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
@@ -1057,6 +1066,7 @@ async function refreshAuth(){
   $("verifyBadge").textContent=pending?"VERIFICATION PENDING":"VERIFIED";
   if(pending) $("verifyBadge").style.cssText="margin:0;display:inline-flex;color:#ffd36d;border-color:#ffd36d33;background:#ffd36d08";
   const admin=s ? await checkAdmin(s) : false;
+  if(seq!==__authRefreshSeq)return;
   $("adminNav").classList.toggle("show",admin);
 }
 async function checkAdmin(s){
@@ -1176,16 +1186,25 @@ $("loginSubmit").onclick=async()=>{
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
   if(!email||!password){$("loginState").textContent="Enter your email and password.";return;}
   $("loginState").textContent="Signing in…"; $("loginSubmit").disabled=true;
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  $("loginSubmit").disabled=false;
-  if(error){
-    if(/confirm|verified|verify/i.test(error.message)){closeLogin();openVerifyModal(email)}
-    else $("loginState").textContent=error.message;
-    return;
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data?.session)throw new Error("Sign-in succeeded but no session was returned. Please try again.");
+    __sessionCache=data.session;
+    __sessionCacheAt=Date.now();
+    await claimOwnerIfAvailable(data.session);
+    closeLogin();
+    toast("Signed in.");
+    await refreshAuth(true);
+  }catch(error){
+    if(/confirm|verified|verify/i.test(error?.message||"")){
+      closeLogin();openVerifyModal(email);
+    }else{
+      $("loginState").textContent=error?.message||"Unable to sign in.";
+    }
+  }finally{
+    $("loginSubmit").disabled=false;
   }
-  __sessionCache=data.session||null; __sessionCacheAt=Date.now();
-  await claimOwnerIfAvailable(data.session);
-  closeLogin(); toast("Signed in."); await refreshAuth();
 };
 $("authBtn").onclick=async()=>{
   const s=await session();
@@ -1193,16 +1212,19 @@ $("authBtn").onclick=async()=>{
   openLogin();
 };
 sb.auth.onAuthStateChange((event,authSession)=>{
-  // Never replace a valid cached session with a transient null INITIAL_SESSION.
-  // Let getSession() be the source of truth after Supabase finishes restoring storage.
   if(event==="SIGNED_OUT"){
     __sessionCache=null;
     __sessionCacheAt=Date.now();
-  }else if(authSession){
+    setTimeout(()=>refreshAuth(true),0);
+    return;
+  }
+  if(authSession){
     __sessionCache=authSession;
     __sessionCacheAt=Date.now();
   }
-  setTimeout(()=>refreshAuth(),50);
+  // INITIAL_SESSION can briefly report null while storage restoration finishes.
+  // Re-read the real persisted session instead of treating that event as a logout.
+  setTimeout(()=>refreshAuth(true),0);
 });
 
 $("submitStaff").onclick=async()=>{
