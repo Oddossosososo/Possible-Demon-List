@@ -728,10 +728,7 @@ function closeVideo(){
   videoPauseTime=0;
   const frame=$("videoFrame");
   if(frame){
-    try{frame.contentWindow?.postMessage(JSON.stringify({event:"command",func:"stopVideo",args:[]}),"*")}catch{}
     frame.src="about:blank";
-    frame.removeAttribute("src");
-    frame.load();
   }
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
