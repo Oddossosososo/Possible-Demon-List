@@ -717,15 +717,25 @@ function freezeVideoFrame(){
 function closeVideo(){
   clearInterval(videoTicker);
   videoTicker=null;
-  if(videoPlayer){try{videoPlayer.destroy()}catch{}}
+  if(videoPlayer){
+    try{videoPlayer.stopVideo()}catch{}
+    try{videoPlayer.destroy()}catch{}
+  }
   videoPlayer=null;
   videoPendingId="";
   videoCutoff=0;
   videoPaused=false;
   videoPauseTime=0;
-  $("videoFrame").src="about:blank";
+  const frame=$("videoFrame");
+  if(frame){
+    try{frame.contentWindow?.postMessage(JSON.stringify({event:"command",func:"stopVideo",args:[]}),"*")}catch{}
+    frame.src="about:blank";
+    frame.removeAttribute("src");
+    frame.load();
+  }
   $("videoSeek").value=0;
   $("videoTime").textContent="0:00 / 0:00";
+  $("videoStartHint")?.classList.remove("hidden");
   $("videoModal").classList.remove("show");
   $("videoModal").setAttribute("aria-hidden","true");
   document.body.style.overflow="";
