@@ -19,6 +19,14 @@ const API = {
   completions: SUPABASE_URL + "/functions/v1/completion-api"
 };
 
+const COUNTRY_CODES=["AD","AE","AF","AG","AI","AL","AM","AO","AQ","AR","AS","AT","AU","AW","AX","AZ","BA","BB","BD","BE","BF","BG","BH","BI","BJ","BL","BM","BN","BO","BQ","BR","BS","BT","BV","BW","BY","BZ","CA","CC","CD","CF","CG","CH","CI","CK","CL","CM","CN","CO","CR","CU","CV","CW","CX","CY","CZ","DE","DJ","DK","DM","DO","DZ","EC","EE","EG","EH","ER","ES","ET","FI","FJ","FK","FM","FO","FR","GA","GB","GD","GE","GF","GG","GH","GI","GL","GM","GN","GP","GQ","GR","GS","GT","GU","GW","GY","HK","HM","HN","HR","HT","HU","ID","IE","IL","IM","IN","IO","IQ","IR","IS","IT","JE","JM","JO","JP","KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ","LA","LB","LC","LI","LK","LR","LS","LT","LU","LV","LY","MA","MC","MD","ME","MF","MG","MH","MK","ML","MM","MN","MO","MP","MQ","MR","MS","MT","MU","MV","MW","MX","MY","MZ","NA","NC","NE","NF","NG","NI","NL","NO","NP","NR","NU","NZ","OM","PA","PE","PF","PG","PH","PK","PL","PM","PN","PR","PS","PT","PW","PY","QA","RE","RO","RS","RU","RW","SA","SB","SC","SD","SE","SG","SH","SI","SJ","SK","SL","SM","SN","SO","SR","SS","ST","SV","SX","SY","SZ","TC","TD","TF","TG","TH","TJ","TK","TL","TM","TN","TO","TR","TT","TV","TW","TZ","UA","UG","UM","US","UY","UZ","VA","VC","VE","VG","VI","VN","VU","WF","WS","YE","YT","ZA","ZM","ZW"];
+const COUNTRY_DISPLAY_NAMES=new Intl.DisplayNames(["en"],{type:"region"});
+function countryFlag(value){const code=String(value||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?String.fromCodePoint(...[...code].map(c=>127397+c.charCodeAt(0))):"🌐";}
+const COUNTRY_OPTIONS=COUNTRY_CODES.map(code=>({value:code,label:COUNTRY_DISPLAY_NAMES.of(code)||code,flag:countryFlag(code)})).sort((a,b)=>a.label.localeCompare(b.label));
+function countryCode(value){const raw=String(value||"").trim();if(!raw)return "";const upper=raw.toUpperCase();if(COUNTRY_CODES.includes(upper))return upper;const match=COUNTRY_OPTIONS.find(x=>x.label.toLowerCase()===raw.toLowerCase());return match?.value||"";}
+function countryName(value){const code=countryCode(value);return code?(COUNTRY_OPTIONS.find(x=>x.value===code)?.label||code):String(value||"").trim();}
+function countryOption(code){const x=COUNTRY_OPTIONS.find(v=>v.value===code);return x?x.flag+" "+x.label:"";}
+
 const $ = id => document.getElementById(id);
 const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function normalizeCurrentWR(value){
@@ -56,6 +64,7 @@ function closeAdminDialog(result=null){
   const modal=$("adminDialog");
   if(!modal)return;
   modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
   if(__adminDialogResolve){const resolve=__adminDialogResolve;__adminDialogResolve=null;resolve(result);}
 }
 
@@ -83,6 +92,7 @@ function openAdminDialog({title,subtitle="",fields=[],confirmText="Save",danger=
       if(fields[i]?.normalize) el.dataset.normalize=fields[i].normalize;
     });
     $("adminDialog").classList.add("show");
+    $("adminDialog").setAttribute("aria-hidden","false");
     bindPercentInput();
     const first=body.querySelector("input,textarea");
     setTimeout(()=>first?.focus(),0);
@@ -464,7 +474,7 @@ $("completionForm").addEventListener("submit",async e=>{
   const level=activeCompletionLevel;
   if(!level)return;
   const player_name=$("completionPlayer").value.trim();
-  const country=$("completionCountry").value.trim();
+  const country=countryName($("completionCountry").value);
   const progress=Number($("completionProgress").value);
   const video_url=$("completionVideo").value.trim();
   if(!player_name||!country||!Number.isInteger(progress)||progress<0||progress>100){$("completionState").textContent="Enter a player name, country and whole-number progress from 0 to 100.";return;}
@@ -532,6 +542,7 @@ function personCard(p,role){
         ${p.wrs.map(x=>`<div class="wr-holder-row"><span class="wr-holder-level">${escapeHTML(x.level_name)}</span><span class="wr-holder-record">${escapeHTML(x.record||x.current_wr||"WR")}</span></div>`).join("")}
       </div>` : "";
   const avatar=p.avatar_url||youtubeChannelAvatar(p.youtube_url);
+  const playerCountry=role==="Player"&&p.country?`<span class="person-country" title="${escapeHTML(countryName(p.country))}">${countryFlag(p.country)} ${escapeHTML(countryName(p.country))}</span>`:"";
   const avatarHTML=avatar
     ? `<img src="${escapeHTML(avatar)}" alt="${escapeHTML(p.username||role)} profile picture" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" onerror="this.parentElement.textContent='${escapeHTML((p.username||"?").slice(0,1).toUpperCase())}'">`
     : escapeHTML((p.username||"?").slice(0,1).toUpperCase());
@@ -540,7 +551,7 @@ function personCard(p,role){
     : "";
   const profileDesc=p.youtube_description && role==="Creator"
     ? `<div class="person-sub" style="margin-top:5px">${escapeHTML(p.youtube_description)}</div>` : "";
-  return `<article class="person"><div class="person-top"><div class="avatar">${avatarHTML}</div><div><div class="person-name">${escapeHTML(p.username)}</div><div class="person-sub">${escapeHTML(sub)}</div>${profileDesc}</div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}${wrHolder}${youtube}</article>`;
+  return `<article class="person"><div class="person-top"><div class="avatar">${avatarHTML}</div><div><div class="person-name">${escapeHTML(p.username)}</div>${playerCountry}<div class="person-sub">${escapeHTML(sub)}</div>${profileDesc}</div></div>${p.bio?`<div class="person-bio">${escapeHTML(p.bio)}</div>`:""}${levelNames}${wrHolder}${youtube}</article>`;
 }
 
 async function loadSubmit(){
@@ -1292,11 +1303,15 @@ window.editPlayerProfile=async(username)=>{
     const m=String(p.youtube_url||"").match(/youtube\.com\/@([^/?#]+)/i);
     if(m) current="@"+m[1];
   }
+  const currentCountry=countryCode(p.country);
   const result=await openAdminDialog({
     title:"Edit Player Profile",
-    subtitle:"Set the YouTube @handle for "+username+".",
+    subtitle:"Set the player's country and optional YouTube profile.",
     confirmText:"Save Profile",
-    fields:[{key:"youtube_handle",label:"YouTube @handle",value:current,placeholder:"@example",wide:true}]
+    fields:[
+      {key:"country",label:"Country / flag",type:"select",value:currentCountry,options:[{value:"",label:"🌐 Not set"},...COUNTRY_OPTIONS.map(x=>({value:x.value,label:x.flag+" "+x.label}))],wide:true},
+      {key:"youtube_handle",label:"YouTube @handle",value:current,placeholder:"@example",wide:true}
+    ]
   });
   if(!result)return;
   let handle=String(result.youtube_handle||"").trim();
@@ -1305,7 +1320,8 @@ window.editPlayerProfile=async(username)=>{
     toast("Enter a valid YouTube @handle.");
     return;
   }
-  const j=await adminPost({action:"link_player_youtube",username,youtube_url:handle?"https://www.youtube.com/"+handle:"",youtube_channel_id:"",youtube_handle:handle});
+  const youtubeUrl=handle?"https://www.youtube.com/"+handle:(p.youtube_url||"");
+  const j=await adminPost({action:"link_player_youtube",username,country:result.country||"",youtube_url:youtubeUrl,youtube_channel_id:handle?"":(p.youtube_channel_id||""),youtube_handle:handle});
   if(j){
     toast("Player profile updated.");
     adminState.data=null;
@@ -1505,4 +1521,8 @@ async function loadAccount(){
 const startHash=(location.hash||"#rankings").slice(1);
 const initialView=["rankings","creators","players","changes","time-machine","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
+// Hydrate off-screen sections too, so visitors never see permanent loading placeholders when opening them later.
+loadCommunity();
+loadChanges();
+loadShortestReign();
 refreshAuth();
