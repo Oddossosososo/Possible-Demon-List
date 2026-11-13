@@ -5,20 +5,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Possible — Humanly Possible</title>
   <!-- Pages publish refresh: editable admin panel -->
-  <meta name="description" content="Possible — a ranked list of Geometry Dash levels believed to be humanly possible, but not yet beaten.">
+  <meta name="description" content="Possible — a community-run Geometry Dash level ranking.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root{
-      --bg:#07090f;--panel:#0e121b;--panel2:#111725;--text:#f5f7ff;--muted:#8d97aa;
-      --line:#ffffff12;--accent:#8190ff;--accent2:#a7b0ff;--ok:#6de0a5;--warn:#ffd36d;--danger:#ff728d;
-      --shadow:0 20px 70px #0008;
+      --bg:#090b10;--panel:#111520;--panel2:#171c2b;--text:#f1f5f9;--muted:#94a3b8;
+      --line:rgba(255,255,255,.085);--accent:#38bdf8;--accent2:#818cf8;--ok:#6de0a5;--warn:#ffd36d;--danger:#ff728d;
+      --rank-1:#fbbf24;--rank-2:#e2e8f0;--rank-3:#d97706;--shadow:0 20px 70px #0008;
     }
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
-    body{margin:0;background:
-      radial-gradient(circle at 50% -10%,#232a43 0,#0b0e16 34%,#07090f 70%);
-      color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+    body{margin:0;background:radial-gradient(circle at 15% 0%,rgba(56,189,248,.08),transparent 35%),radial-gradient(circle at 85% 8%,rgba(129,140,248,.07),transparent 35%),#090b10;color:var(--text);font-family:'Space Grotesk',Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em}
     button,input,select,textarea{font:inherit}
     button{cursor:pointer}
     a{color:inherit;text-decoration:none}
@@ -339,6 +340,22 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
   .video-lock-bottom-mid{height:112px;right:220px}
 }
 </style>
+
+<style id="possible-community-theme">
+:root{--bg:#090b10;--panel:#111520;--panel2:#171c2b;--accent:#38bdf8;--accent2:#818cf8}
+code,.level-id,.points,.percentage,input[type=number],.video-time{font-family:'JetBrains Mono',monospace!important;font-variant-numeric:tabular-nums}
+.nav{background:rgba(9,11,16,.86);border-bottom-color:rgba(255,255,255,.09)}
+.nav-btn.active{background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.38);color:#e8f8ff}
+.primary{background:linear-gradient(135deg,#38bdf8,#6366f1);color:#080b11;border:0}
+.level{background:linear-gradient(110deg,#131824,#0d1119);border-color:rgba(255,255,255,.085);border-radius:15px;transition:transform .18s,border-color .18s,box-shadow .18s}
+.level:hover{background:#171c2b;border-color:rgba(56,189,248,.4);box-shadow:0 14px 38px #0008,0 0 18px rgba(56,189,248,.1)}
+.level-thumb{width:132px;height:74px;border-radius:10px}
+.empty{border-color:rgba(56,189,248,.18);background:rgba(17,21,32,.55);color:#9aa8bb}
+.panel,.person,.change{border-color:rgba(255,255,255,.085)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.13)}
+.kicker{letter-spacing:.8px}.footer{color:#778397}
+@media(max-width:650px){.level-thumb{width:92px;height:58px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -356,15 +373,14 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
             <button class="nav-btn" data-view="time-machine" style="width:100%;text-align:left;margin:2px 0">Time Machine</button>
             <button class="nav-btn" data-view="submit" style="width:100%;text-align:left;margin:2px 0">Submit</button>
             <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Staff</button>
-            <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Apply for Moderator</button>
             <button class="nav-btn" id="verifyNav" data-view="verify" style="width:100%;text-align:left;margin:2px 0">Verify</button>
-            <button class="nav-btn" id="accountNav" data-view="account" style="width:100%;text-align:left;margin:2px 0">Account</button>
+            <button class="nav-btn" id="accountNav" data-view="account" style="width:100%;text-align:left;margin:2px 0">My Account</button>
+            <button class="nav-btn admin-only" id="adminNav" data-view="admin" style="width:100%;text-align:left;margin:2px 0">Admin Control Center</button>
           </div>
         </div>
       </nav>
       <div class="auth">
         <span class="status" id="verifyBadge" style="display:none;margin:0">VERIFICATION PENDING</span>
-        <button class="nav-btn admin-only" id="adminNav" data-view="admin">Admin</button>
         <button class="nav-btn" id="createBtn">Create Account</button>
         <button class="nav-btn" id="authBtn">Sign In</button>
       </div>
@@ -391,23 +407,22 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
         <div class="ranking-search"><span>⌕</span><input id="levelSearch" type="search" placeholder="Search levels, creators or GD IDs…" autocomplete="off"></div>
         <select id="levelDifficultyFilter" aria-label="Filter by difficulty"><option value="all">All difficulties</option><option>Easy</option><option>Normal</option><option>Hard</option><option>Harder</option><option>Insane</option><option>Easy Demon</option><option>Medium Demon</option><option>Hard Demon</option><option>Insane Demon</option><option>Extreme Demon</option></select><select id="levelStatusFilter" aria-label="Filter by whether you have beaten the level"><option value="all">All levels</option><option value="beaten">If you have beaten it</option><option value="unbeaten">If you haven’t beaten it</option></select>
       </div>
-      <div id="rankings" class="cards"><div class="empty">Loading Possible…</div></div>
+      <div id="rankings" class="cards"><div class="empty">Loading the level list…</div></div>
     </section>
 
     <section class="view" id="view-creators">
       <div class="section-head"><div><h2>Creator Leaderboard</h2><p>Ranked by the total difficulty-point value of each creator’s active levels.</p></div></div>
-      <div id="creators" class="grid"><div class="empty">Loading creators…</div></div>
+      <div id="creators" class="grid"><div class="empty">Loading creator leaderboard…</div></div>
     </section>
 
     <section class="view" id="view-players">
       <div class="section-head"><div><h2>Player Leaderboard</h2><p>Ranked by approved personal progress. Partial progress uses B × 5^((p-r)/(100-r)) ÷ 10; 100% earns B.</p></div></div>
-      <div id="players" class="grid"><div class="empty">Loading players…</div></div>
+      <div id="players" class="grid"><div class="empty">Loading player leaderboard…</div></div>
     </section>
 
     <section class="view" id="view-time-machine">
       <div class="section-head"><div><h2>Time Machine</h2><p>Explore recorded versions of the Possible rankings.</p></div></div>
       <div class="panel">
-        <div class="kicker" style="margin-bottom:12px">HISTORICAL VIEW</div>
         <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
           <div style="min-width:220px;flex:1"><label for="tmDate">Snapshot date & time</label><input id="tmDate" type="datetime-local"></div>
           <button class="primary" id="tmLoad">Load Snapshot</button>
@@ -427,7 +442,6 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
     <section class="view" id="view-submit">
       <div class="section-head"><div><h2>Submit a Level</h2><p>Send a level to the Possible team for review.</p></div></div>
       <div class="panel" style="max-width:720px">
-        <div class="kicker" style="margin-bottom:14px">POSSIBLE SUBMISSION</div>
         <div id="submitGate" class="muted">Checking account…</div>
         <div id="submitForm" style="display:none;margin-top:14px">
           <div class="form-grid">
@@ -541,7 +555,7 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
     <section style="margin-top:44px" class="panel">
       <h2 style="margin:0 0 8px;font-size:18px">About Possible</h2>
       <p class="muted">Possible is a community-run list focused on levels believed to be humanly possible but not yet beaten. Rankings, submissions, verification decisions and moderation are managed by the Possible team.</p>
-      <p class="muted" style="margin-bottom:0">Built with AI assistance.</p>
+      <p class="muted" style="margin-bottom:0">Managed by the Possible List Team · Built around the Geometry Dash community.</p>
     </section>
   </main>
 
@@ -940,6 +954,10 @@ async function showView(name){
 }
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.viewJump)));
+window.addEventListener("popstate",()=>showView((location.hash||"#rankings").slice(1)));
+
+
+window.copyLevelId=async function(value){const id=String(value||"").trim();if(!id){toast("No Geometry Dash ID is available.");return;}try{await navigator.clipboard.writeText(id);toast("Level ID "+id+" copied.");}catch(error){const field=document.createElement("textarea");field.value=id;field.style.position="fixed";field.style.opacity="0";document.body.appendChild(field);field.select();const copied=document.execCommand("copy");field.remove();toast(copied?"Level ID "+id+" copied.":"Could not copy this ID.");}};
 
 let __levelsPromise=null;
 let __allLevels=[];
@@ -997,7 +1015,7 @@ function renderLevels(){
         <div class="status ${isBeaten?"status-beaten":"status-unbeaten"}">${isBeaten?"✓ YOU BEAT IT":personal?"YOUR "+Number(personal.progress)+"%":"● NOT BEATEN"}</div>
       </article>`;
     }).join("")}</div></section>`;
-  }).join(""):'<div class="empty">No levels match this search.</div>';
+  }).join(""):'<div class="empty">'+(__allLevels.length?'No levels match those filters. Try another search or difficulty.':'No levels ranked yet — check back soon!')+'</div>';
 }
 function bindRankingFilters(){
   const search=$("levelSearch"),status=$("levelStatusFilter"),difficulty=$("levelDifficultyFilter");
@@ -1022,7 +1040,7 @@ $("rankings").addEventListener("keydown",e=>{
 async function loadLevels(){
   if(__levelsPromise)return __levelsPromise;
   const el=$("rankings");
-  __levelsPromise=(async()=>{el.innerHTML='<div class="empty">Loading Possible…</div>';
+  __levelsPromise=(async()=>{el.innerHTML='<div class="empty">Loading the level list…</div>';
     try{
       const r=await fetch(API.levels+"?t="+Date.now(),{cache:"no-store"});
       const json=await r.json();
@@ -1032,7 +1050,7 @@ async function loadLevels(){
       renderLevels();
       bindRankingFilters();
       renderLevels();
-    }catch(e){console.error(e);el.innerHTML='<div class="empty">Couldn’t load the Possible list.</div>';}
+    }catch(e){console.error(e);el.innerHTML='<div class="empty">The level list couldn’t load right now. Please try again shortly.</div>';}
   })().finally(()=>{__levelsPromise=null});
   return __levelsPromise;
 }
