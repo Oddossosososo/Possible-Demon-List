@@ -608,6 +608,7 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
         <div style="font-weight:900;margin-top:12px" id="detailsVideoName">Verification video</div>
         <div class="details-description" id="detailsDescription"></div>
         <div class="detail-meta" id="detailsMeta"></div>
+        <div class="completion-note" id="myLevelProgress" aria-live="polite"></div>
       </div>
       <form class="completion-panel" id="completionForm">
         <h3>Submit your progress</h3>
@@ -942,6 +943,23 @@ document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("cli
 
 let __levelsPromise=null;
 let __allLevels=[];
+let __myLevelProgress=new Map();
+
+async function loadMyProgress(){
+  __myLevelProgress=new Map();
+  const current=await session();
+  if(!current?.access_token)return;
+  try{
+    const response=await fetch(API.completions,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+current.access_token},cache:"no-store"});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||"Could not load personal progress");
+    for(const row of result.data||[]){
+      if(row.status!=="approved")continue;
+      const key=String(row.level_id),old=__myLevelProgress.get(key);
+      if(!old||Number(row.progress)>Number(old.progress))__myLevelProgress.set(key,row);
+    }
+  }catch(error){console.warn("Personal progress unavailable",error);}
+}
 let __levelFilter="all";
 let __difficultyFilter="all";
 const GD_DIFFICULTIES=["Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon"];
@@ -954,27 +972,29 @@ function renderLevels(){
   const statusFilter=String($("levelStatusFilter")?.value||__levelFilter||"all").toLowerCase();
   const difficultyFilter=String($("levelDifficultyFilter")?.value||__difficultyFilter||"all").trim().toLowerCase();
   const rows=__allLevels.filter(l=>{
-    const status=String(l.status||"unbeaten").trim().toLowerCase();
+    const personal=__myLevelProgress.get(String(l.id));
+    const status=Number(personal?.progress)===100?"beaten":"unbeaten";
     const difficulty=levelDifficulty(l);
     const matchesStatus=statusFilter==="all" || status===statusFilter;
     const matchesDifficulty=difficultyFilter==="all" || difficulty.toLowerCase()===difficultyFilter;
     const hay=[l.name,l.creator,l.gd_level_id,l.current_wr,difficulty].join(" ").toLowerCase();
     return matchesStatus && matchesDifficulty && (!q || hay.includes(q));
   });
-  const unbeaten=__allLevels.filter(x=>x.status!=="beaten").length;
-  const beaten=__allLevels.filter(x=>x.status==="beaten").length;
+  const beaten=__allLevels.filter(x=>Number(__myLevelProgress.get(String(x.id))?.progress)===100).length;
+  const unbeaten=__allLevels.length-beaten;
   $("levelCount").textContent=rows.length+" shown · "+unbeaten+" unbeaten · "+beaten+" beaten";
   el.innerHTML=rows.length?GD_DIFFICULTIES.filter(d=>rows.some(l=>levelDifficulty(l)===d)).map(d=>{
     const group=rows.filter(l=>levelDifficulty(l)===d).sort((a,b)=>Number(a.current_rank||999999)-Number(b.current_rank||999999));
     return `<section class="difficulty-group"><div class="difficulty-group-head"><h3>${d}</h3><span>${group.length} level${group.length===1?"":"s"} · independent ranking</span></div><div class="cards">${group.map((l,i)=>{
-      const isBeaten=l.status==="beaten";
+      const personal=__myLevelProgress.get(String(l.id));
+      const isBeaten=Number(personal?.progress)===100;
       const rank=i+1;
       const thumbnail=youtubeThumbnail(l.verification_url)||l.thumbnail_url||"";
       return `<article class="level ${isBeaten?"level-beaten":""}" data-level-id="${escapeHTML(l.id)}" tabindex="0" aria-label="Open details for ${escapeHTML(l.name||"level")}">
         <div class="rank ${rank===1?"top":""}">#${rank}</div>
         ${thumbnail?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="event.stopPropagation();watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
         <div class="level-main"><div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div><div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div><div class="level-id">GD ID ${escapeHTML(l.gd_level_id??"—")}</div>${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':""}</div>
-        <div class="status ${isBeaten?"status-beaten":"status-unbeaten"}">${isBeaten?"✓ BEATEN":"● UNBEATEN"}</div>
+        <div class="status ${isBeaten?"status-beaten":"status-unbeaten"}">${isBeaten?"✓ YOU BEAT IT":personal?"YOUR "+Number(personal.progress)+"%":"● NOT BEATEN"}</div>
       </article>`;
     }).join("")}</div></section>`;
   }).join(""):'<div class="empty">No levels match this search.</div>';
@@ -1008,6 +1028,7 @@ async function loadLevels(){
       const json=await r.json();
       if(!r.ok)throw new Error(json?.error||"Could not load levels");
       __allLevels=(Array.isArray(json)?json:(json.data||[])).filter(x=>x.status!=="archived");
+      await loadMyProgress();
       renderLevels();
       bindRankingFilters();
       renderLevels();
@@ -1023,6 +1044,11 @@ function openLevelDetails(level){
   $("detailsCreator").textContent=(level.creator||"Unknown creator")+" · GD ID "+(level.gd_level_id??"—")+" · "+levelDifficulty(level);
   $("detailsDescription").textContent=level.description||"No description has been added for this level yet.";
   $("detailsMeta").textContent=level.min_progress==null?"No minimum progress requirement set for this level.":"Minimum progress required: "+level.min_progress+"%";
+  const ownProgress=__myLevelProgress.get(String(level.id));
+  $("myLevelProgress").textContent=ownProgress
+    ? (Number(ownProgress.progress)===100?"✓ You have beaten this level. ":"Your best approved progress: "+ownProgress.progress+"%. ")+
+      "Your points are calculated on the Players leaderboard."
+    : "Your personal progress appears here after staff approval. Sign in to track your own records.";
   $("completionRequirement").textContent=level.min_progress==null
     ?"No minimum progress is set. Submit your current progress for review."
     :"This level requires at least "+level.min_progress+"% progress. The value is set by the Possible admin team.";
@@ -1076,7 +1102,7 @@ $("completionForm").addEventListener("submit",async e=>{
     const response=await fetch(API.completions,{method:"POST",headers,body:JSON.stringify({level_id:level.id,player_name,country,progress,video_url})});
     const result=await response.json();
     if(!response.ok)throw new Error(result.error||"Could not submit progress.");
-    $("completionState").textContent="Submitted! Your progress is waiting for review.";
+    $("completionState").textContent="Submitted! Your progress is waiting for review. Sign in to track it on your account.";
     $("completionForm").reset();
   }catch(error){$("completionState").textContent=error.message||"Submission failed.";}
   finally{$("completionSubmit").disabled=false;}
@@ -1088,9 +1114,10 @@ async function loadCommunity(){
   if(__communityPromise)return __communityPromise;
   __communityPromise=(async()=>{try{
     const r=await fetch(API.community); const j=await r.json();
-    const creators=j?.data?.creators||[]; const players=j?.data?.players||[];
-    $("creators").innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No verified creators yet.</div>';
-    $("players").innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No verified players yet.</div>';
+    const creators=(j?.data?.creators||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
+    const players=(j?.data?.players||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
+    $("creators").innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No creators yet.</div>';
+    $("players").innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No players yet.</div>';
   }catch(e){
     $("creators").innerHTML=$("players").innerHTML='<div class="empty">Couldn’t load community lists.</div>';
   }} )().finally(()=>{__communityPromise=null});
@@ -1109,7 +1136,7 @@ function personCard(p,role){
   }
   if(role==="Player"){
     const count=Number(p.level_count||0);
-    sub=`${Number(p.points||0).toFixed(2).replace(/\\.00$/,"")} points · `+count+` WR level${count===1?"":"s"} on Possible`;
+    sub=`${Number(p.points||0).toFixed(2)} points · `+count+` level${count===1?"":"s"} with progress / WR`;
   }
   const levelNames=role==="Creator" && Array.isArray(p.levels) && p.levels.length
     ? `<div class="person-bio">${escapeHTML(p.levels.map(x=>x.name).join(" • "))}</div>` : "";
