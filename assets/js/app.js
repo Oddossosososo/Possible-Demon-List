@@ -307,7 +307,35 @@ async function loadMyProgress(){
 let __levelFilter="all";
 let __difficultyFilter="all";
 const GD_DIFFICULTIES=["Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon"];
-function levelDifficulty(level){const value=String(level.difficulty||level.gd_difficulty||"Extreme Demon").trim();return GD_DIFFICULTIES.includes(value)?value:"Extreme Demon";}
+const DIFFICULTY_POINT_MULTIPLIERS={
+  "extreme demon":1.0,
+  "insane demon":0.7,
+  "hard demon":0.6,
+  "medium demon":0.6,
+  "easy demon":0.6,
+  "insane":0.6,
+  "harder":0.6,
+  "hard":0.6,
+  "normal":0.6,
+  "easy":0.6
+};
+function getDifficultyMultiplier(difficulty){
+  const key=String(difficulty??"").trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(DIFFICULTY_POINT_MULTIPLIERS,key)
+    ? DIFFICULTY_POINT_MULTIPLIERS[key]
+    : 1.0;
+}
+function getMaxPoints(rank,difficulty){
+  const r=Number(rank);
+  if(!Number.isInteger(r)||r<1||r>150)return 0;
+  const baseRankPoints=350*Math.exp(-0.032*(r-1));
+  return baseRankPoints*getDifficultyMultiplier(difficulty);
+}
+
+function levelDifficulty(level){
+  const value=String(level.difficulty||level.gd_difficulty||"Extreme Demon").trim();
+  return GD_DIFFICULTIES.find(d=>d.toLowerCase()===value.toLowerCase())||"Extreme Demon";
+}
 function renderLevels(){
   const el=$("rankings");
   const q=String($("levelSearch")?.value||"").trim().toLowerCase();
@@ -390,7 +418,7 @@ function openLevelDetails(level){
   const rank=Number(level.current_rank)||0;
   const minRequirement=rank>0&&rank<=25?50:rank<=75&&rank>0?60:rank<=150&&rank>0?75:100;
   $("detailsMeta").textContent=rank>0
-    ? "Rank #"+rank+" · 100% value: "+(175*Math.exp(-0.032*(rank-1))).toFixed(2)+" points · Minimum progress: "+minRequirement+"%"
+    ? "Rank #"+rank+" · 100% value: "+getMaxPoints(rank,levelDifficulty(level)).toFixed(2)+" points · Minimum progress: "+minRequirement+"%"
     : "This level needs a ranked position before it can earn points.";
   const ownProgress=__myLevelProgress.get(String(level.id));
   $("myLevelProgress").textContent=ownProgress
