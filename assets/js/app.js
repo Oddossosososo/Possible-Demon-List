@@ -460,15 +460,25 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("levelDetailsModa
 let __communityPromise=null;
 async function loadCommunity(){
   if(__communityPromise)return __communityPromise;
-  __communityPromise=(async()=>{try{
-    const r=await fetch(API.community,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"}); const j=await r.json();
-    const creators=(j?.data?.creators||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
-    const players=(j?.data?.players||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
-    $("creators").innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No creators yet.</div>';
-    $("players").innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No players yet.</div>';
-  }catch(e){
-    $("creators").innerHTML=$("players").innerHTML='<div class="empty">Couldn’t load community lists.</div>';
-  }} )().finally(()=>{__communityPromise=null});
+  __communityPromise=(async()=>{
+    const creatorEl=$("creators"),playerEl=$("players");
+    creatorEl.innerHTML=playerEl.innerHTML='<div class="empty">Loading leaderboards…</div>';
+    try{
+      const r=await fetch(API.community,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"});
+      const j=await r.json();
+      if(!r.ok || j?.message!=="success") throw new Error(j?.data?.error||j?.message||"Leaderboard request failed.");
+      const creators=Array.isArray(j?.data?.creators)?j.data.creators:[];
+      const players=Array.isArray(j?.data?.players)?j.data.players:[];
+      creators.sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0)||String(a.username||"").localeCompare(String(b.username||"")));
+      players.sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0)||String(a.username||"").localeCompare(String(b.username||"")));
+      creatorEl.innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No creators have ranked levels yet.</div>';
+      playerEl.innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No players have approved progress or current world records yet.</div>';
+    }catch(e){
+      const message=escapeHTML(e?.message||"Couldn’t load community lists.");
+      creatorEl.innerHTML=playerEl.innerHTML='<div class="empty">Leaderboard unavailable: '+message+'</div>';
+      console.error("Leaderboard loading failed",e);
+    }
+  })().finally(()=>{__communityPromise=null});
   return __communityPromise;
 }
 function youtubeChannelAvatar(url){
@@ -731,7 +741,7 @@ async function verifyCode(email,token,stateEl){
   }
   closeVerifyModal();
   toast("Email verified. Welcome to Possible!");
-  await claimOwnerIfAvailable(data.session||await session());
+
   refreshAuth();
   return true;
 }
@@ -740,7 +750,7 @@ async function checkEmailVerified(){
   if(user?.email_confirmed_at){
     closeVerifyModal();
     toast("Email verified. Welcome to Possible!");
-    await claimOwnerIfAvailable(await session());
+
     refreshAuth();
     return true;
   }
@@ -769,38 +779,53 @@ $("verifyPageCheck").onclick=async()=>{
   await verifyCode(email,$("verifyPageCode").value.trim(),$("verifyPageState"));
 };
 
-async function claimOwnerIfAvailable(s){
-  if(!s) return false;
+function createAccount(){
+  $("signupState").textContent="";
+  $("signupForm").reset();
+  $("signupModal").classList.add("show");
+  $("signupModal").setAttribute("aria-hidden","false");
+  setTimeout(()=>$("signupUsername").focus(),0);
+}
+function closeSignup(){
+  $("signupModal").classList.remove("show");
+  $("signupModal").setAttribute("aria-hidden","true");
+}
+$("createBtn").onclick=createAccount;
+$("signupClose").onclick=closeSignup;
+$("signupCancel").onclick=closeSignup;
+$("signupToLogin").onclick=()=>{closeSignup();openLogin();};
+$("signupModal").addEventListener("click",e=>{if(e.target.id==="signupModal")closeSignup();});
+$("signupForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const username=$("signupUsername").value.trim();
+  const email=$("signupEmail").value.trim();
+  const password=$("signupPassword").value;
+  const confirmPassword=$("signupPasswordConfirm").value;
+  const state=$("signupState");
+  if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){state.textContent="Username must be 3–20 characters using letters, numbers or underscores.";return;}
+  if(password.length<8){state.textContent="Use a password with at least 8 characters.";return;}
+  if(password!==confirmPassword){state.textContent="Your passwords do not match.";return;}
+  $("signupSubmit").disabled=true;
+  state.textContent="Creating your account…";
   try{
-    const r=await fetch(API.staff,{
-      method:"POST",
-      headers:{"Content-Type":"application/json",Authorization:"Bearer "+s.access_token},
-      body:JSON.stringify({action:"claim_owner"})
-    });
-    if(r.ok){ toast("Owner access enabled."); return true; }
-  }catch(e){}
-  return false;
-}
-async function createAccount(){
-  const username=prompt("Choose a username (3–20 letters, numbers, or underscores):")?.trim();
-  if(!username)return;
-  if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){toast("Username must be 3–20 characters using letters, numbers, or underscores.");return;}
-  const email=prompt("Email for account verification and recovery:");
-  const password=prompt("Choose a password:");
-  if(!email||!password)return;
-  const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
-  if(error){toast(error.message);return}
-  if(data.session){
-    await claimOwnerIfAvailable(data.session);
-    toast("Account created and signed in as "+username+".");
-  }else{
-    $("verifyPageEmail").value=email;
-    $("verifyPageCode").value="";
-    showView("verify");
-    $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code sent to your email.";
+    const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
+    if(error)throw error;
+    closeSignup();
+    if(data.session){
+      toast("Account created and signed in as "+username+".");
+    }else{
+      $("verifyPageEmail").value=email;
+      $("verifyPageCode").value="";
+      showView("verify");
+      $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code sent to your email.";
+    }
+    await refreshAuth(true);
+  }catch(error){
+    state.textContent=error?.message||"Account creation failed. Please try again.";
+  }finally{
+    $("signupSubmit").disabled=false;
   }
-  refreshAuth();
-}
+});
 $("moreNav").onclick=e=>{e.stopPropagation();const m=$("moreMenu");m.style.display=m.style.display==="none"?"block":"none"};
 document.addEventListener("click",e=>{if(!e.target.closest(".nav-more")) $("moreMenu").style.display="none"});
 $("createBtn").onclick=createAccount;
@@ -832,7 +857,7 @@ $("loginSubmit").onclick=async()=>{
     if(error)throw error;
     __sessionCache=data.session;
     __sessionCacheAt=Date.now();
-    await claimOwnerIfAvailable(data.session);
+
     closeLogin();
     toast("Signed in as "+username+".");
     await refreshAuth(true);

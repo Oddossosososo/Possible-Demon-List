@@ -332,3 +332,16 @@ code,.level-id,.points,.percentage,input[type=number],.video-time{font-family:'J
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.13)}
 .kicker{letter-spacing:.8px}.footer{color:#778397}
 @media(max-width:650px){.level-thumb{width:92px;height:58px}}
+
+
+/* Custom account creation */
+.signup-box{width:min(470px,100%);max-height:min(92vh,820px);overflow:auto;scrollbar-width:thin}
+.signup-kicker{display:inline-flex;margin:3px 0 12px;padding:6px 10px;border:1px solid #899aff35;border-radius:999px;background:#899aff12;color:#c2cbff;font-size:10px;font-weight:950;letter-spacing:1.8px}
+.signup-box h2{font-size:25px;letter-spacing:-.8px}
+.signup-box>p{line-height:1.55;margin:8px 0 18px}
+.signup-box input{display:block}
+.signup-hint,.signup-note{font-size:11px;color:#8792aa;line-height:1.5;margin-top:6px}
+.signup-note{margin-top:14px;padding:10px 12px;border:1px solid #899aff22;border-radius:12px;background:#899aff09}
+.signup-box #signupState{min-height:18px;margin-top:12px;line-height:1.5}
+.signup-switch{display:block;margin:14px auto 0;border:0;background:none;color:#aebaff;font-size:12px;font-weight:800}
+.signup-switch:hover{color:#fff;text-decoration:underline}
