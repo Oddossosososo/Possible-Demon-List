@@ -232,7 +232,7 @@
 
 <div class="toast" id="toast"></div>
 
-<div class="admin-dialog-backdrop" id="adminDialog">
+<div class="admin-dialog-backdrop" id="adminDialog" aria-hidden="true">
   <div class="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDialogTitle">
     <div class="admin-dialog-head">
       <div>
@@ -297,7 +297,7 @@
         <div class="person-sub">Guests can submit too. All entries are sent for review.</div>
         <div class="completion-grid">
           <div><label for="completionPlayer">Player name</label><input id="completionPlayer" maxlength="40" required placeholder="Your in-game name"></div>
-          <div><label for="completionCountry">Country</label><input id="completionCountry" maxlength="60" required placeholder="e.g. Australia" list="countrySuggestions"><datalist id="countrySuggestions"><option>Australia</option><option>United States</option><option>United Kingdom</option><option>Canada</option><option>New Zealand</option></datalist></div>
+          <div><label for="completionCountry">Country</label><select id="completionCountry" required aria-label="Country"><option value="">Choose your country</option></select></div>
           <div><label for="completionProgress">Progress (%)</label><input id="completionProgress" type="number" min="0" max="100" step="1" required placeholder="e.g. 42"></div>
           <div class="wide"><label for="completionVideo">Your video / proof URL (optional)</label><input id="completionVideo" type="url" placeholder="https://youtu.be/..."></div>
         </div>
@@ -315,7 +315,7 @@
       <h2 style="margin:0;font-size:21px">Verify your Possible account</h2>
       <button class="mini" id="closeVerify">✕</button>
     </div>
-    <p class="muted" style="margin-top:10px">We sent a verification email to <b id="verifyEmail"></b>.</p>
+    <p class="muted" style="margin-top:10px">We sent a verification email to <b id="verifyEmail">your email</b>.</p>
     <p class="muted">Enter the 6-digit code from the email below.</p>
     <div style="margin-top:12px"><label>6-digit code</label><input id="verifyModalCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:24px;letter-spacing:7px;text-align:center"></div>
     <div class="form-actions">
