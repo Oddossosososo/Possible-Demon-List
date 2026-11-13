@@ -397,7 +397,6 @@ function openLevelDetails(level){
     ? (Number(ownProgress.progress)===100?"✓ You have beaten this level. ":"Your best approved progress: "+ownProgress.progress+"%. ")+
       "Your points are calculated on the Players leaderboard."
     : "Your personal progress appears here after staff approval. Sign in to track your own records.";
-  const minRequirement=rank>0&&rank<=25?50:rank<=75&&rank>0?60:rank<=150&&rank>0?75:100;
   $("completionRequirement").textContent=rank>0
     ? "Automatic minimum: "+minRequirement+"% for rank #"+rank+". Progress below this threshold can be submitted but earns 0 points."
     : "This level is unranked and earns 0 points until it receives a list rank.";
