@@ -262,8 +262,8 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:rgba(255,255,255,.02)}::-webkit-scrollbar-thumb{background:rgba(145,155,210,.22);border:2px solid transparent;background-clip:padding-box;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:rgba(145,155,210,.4);background-clip:padding-box}
 @media(max-width:700px){.panel,.card,.level,.person,.staff-card,.admin-card,.submission-card,.stat,.hero,.table-wrap{box-shadow:0 12px 35px rgba(0,0,0,.2),0 0 28px var(--ultra-glow)}}
 
-/* Possible owns the player UI: never allow YouTube's pause screen/branding overlay to appear. */
-.video-frame-wrap iframe{pointer-events:none}
+/* Keep the YouTube iframe from receiving hover input: its hover/pause UI must never cover the video, including when the pointer is already over the player as playback starts. */
+.video-frame-wrap iframe{pointer-events:none!important}
 .video-frame-wrap:after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:transparent}
 .video-lock-top{z-index:4}
 
