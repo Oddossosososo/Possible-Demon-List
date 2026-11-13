@@ -237,105 +237,6 @@
     .completion-submit{width:100%;margin-top:12px}
     .detail-meta{color:#8f9ab0;font-size:12px;line-height:1.6}
     @media(max-width:700px){.details-content{grid-template-columns:1fr}.completion-grid{grid-template-columns:1fr}.completion-grid .wide{grid-column:auto}.details-modal{padding:8px}.details-shell{max-height:96vh}}
-  
-    /* POSSIBLE 2.0 — full visual refresh */
-    :root{
-      --bg:#070710;--panel:#10101e;--panel2:#17172a;--text:#f5f3ff;--muted:#9998b5;
-      --line:rgba(174,153,255,.15);--accent:#a78bfa;--accent2:#5ee7ff;--ok:#64e6b0;
-      --shadow:0 24px 80px #0009;
-    }
-    body{
-      background:
-        radial-gradient(ellipse at 12% -8%,rgba(124,92,255,.24),transparent 34%),
-        radial-gradient(ellipse at 90% 5%,rgba(39,199,255,.13),transparent 30%),
-        radial-gradient(ellipse at 50% 100%,rgba(99,60,190,.09),transparent 42%),#070710;
-      color:var(--text);letter-spacing:0;
-    }
-    .nav{background:rgba(8,8,18,.82);border-bottom:1px solid rgba(174,153,255,.18);box-shadow:0 10px 40px #0004}
-    .nav-inner{width:min(1320px,94%);height:76px;gap:24px}
-    .brand{font-size:23px;letter-spacing:4px;font-weight:1000}
-    .brand span{color:#a78bfa;text-shadow:0 0 22px #a78bfa88}
-    .nav-btn,.pill-btn{background:rgba(255,255,255,.035);border:1px solid transparent;color:#aaa8c4;border-radius:12px;padding:10px 13px;transition:.2s}
-    .nav-btn:hover,.pill-btn:hover{background:#a78bfa16;border-color:#a78bfa38;color:#fff}
-    .nav-btn.active{background:linear-gradient(135deg,#a78bfa26,#5ee7ff12);border-color:#a78bfa55;color:#fff;box-shadow:inset 0 1px #ffffff14,0 0 22px #a78bfa12}
-    .auth{gap:9px}.auth .nav-btn{border-color:#a78bfa36}
-    #createBtn{background:linear-gradient(135deg,#a78bfa,#6f7cff);border:0;color:white;box-shadow:0 8px 24px #8b78f755}
-    .hero{width:min(1320px,94%);padding:100px 0 58px;position:relative}
-    .hero:before{content:"";position:absolute;inset:28px 12% 0;z-index:-1;border-radius:50%;background:radial-gradient(ellipse,#8b5cf61a,transparent 68%);filter:blur(22px)}
-    .kicker{background:#a78bfa10;border:1px solid #a78bfa38;color:#c8baff;letter-spacing:2px;padding:8px 15px}
-    h1{font-size:clamp(64px,10vw,124px);letter-spacing:-7px;background:linear-gradient(100deg,#fff 8%,#c4b5fd 47%,#67e8f9 92%);-webkit-background-clip:text;text-shadow:0 10px 60px #8b5cf622}
-    .hero p{font-size:17px;max-width:720px;color:#aaa8c5}
-    .primary,.secondary{border-radius:13px;padding:13px 19px;transition:transform .2s,filter .2s,box-shadow .2s}
-    .primary{background:linear-gradient(120deg,#a78bfa,#697bff);box-shadow:0 9px 26px #8b5cf63d;color:#fff;border:1px solid #c4b5fd55}
-    .secondary{background:#ffffff08;border:1px solid #a78bfa36;color:#d7d2f1}
-    .primary:hover,.secondary:hover{transform:translateY(-2px);filter:brightness(1.1)}
-    .content{width:min(1180px,94%);margin-bottom:100px}
-    .section-head{margin:30px 2px 17px}
-    .section-head h2{font-size:23px;letter-spacing:-.6px}
-    .section-head p{color:#8584a4}
-    .level,.person,.panel,.admin-menu,.admin-card,.admin-stat,.change{
-      background:linear-gradient(145deg,rgba(22,22,42,.94),rgba(12,12,25,.96));
-      border:1px solid rgba(174,153,255,.16);box-shadow:0 12px 38px #0004,inset 0 1px #ffffff08;
-    }
-    .level{min-height:100px;border-radius:19px;padding:15px 18px;gap:18px}
-    .level:hover{border-color:#a78bfa70;box-shadow:0 18px 48px #0007,0 0 28px #a78bfa13;transform:translateY(-3px)}
-    .rank{color:#777692;font-family:'JetBrains Mono',monospace}
-    .level-thumb{width:132px;height:74px;border-radius:12px;border-color:#a78bfa30}
-    .level-thumb:hover{border-color:#67e8f9aa;box-shadow:0 0 24px #67e8f922}
-    .level-name{font-size:18px;letter-spacing:-.35px}
-    .level-meta{color:#9694b2}
-    .level-id{color:#696987}
-    .level-wr{background:#64e6b00d;border-color:#64e6b034;color:#83f0c3}
-    .status{background:#ffffff06;border-color:#a78bfa25;color:#aaa8c5}
-    .person,.panel{border-radius:20px}
-    .person{padding:20px}
-    .avatar{background:linear-gradient(145deg,#a78bfa24,#5ee7ff12);border-color:#a78bfa35;color:#d4c8ff}
-    .tag{background:#a78bfa14;border-color:#a78bfa32;color:#c6b8ff}
-    .wr-holder{background:#64e6b008;border-color:#64e6b02c}
-    .change{border-radius:16px;padding:17px}
-    .change-dot{background:#67e8f9;box-shadow:0 0 14px #67e8f9aa}
-    .panel{padding:22px}
-    input,select,textarea{background:#090918;border-color:#a78bfa25;border-radius:12px;color:#f4f1ff}
-    input:focus,textarea:focus{border-color:#a78bfa88;box-shadow:0 0 0 3px #a78bfa16}
-    select{background-color:#111126;border-color:#a78bfa35}
-    .admin-menu{border-radius:19px}
-    .admin-menu-btn{border-radius:11px}
-    .admin-menu-btn.active{background:#a78bfa18;border-color:#a78bfa3b;color:#f5f3ff}
-    .admin-dialog,.video-shell,.details-shell{background:linear-gradient(145deg,#17172d,#090914);border-color:#a78bfa4a}
-    .details-shell{box-shadow:0 30px 120px #000d,0 0 50px #a78bfa12}
-    .completion-panel{background:#a78bfa0d;border-color:#a78bfa42}
-    .empty{border-color:#a78bfa30;background:#a78bfa06;color:#8f8daa}
-    .footer{color:#696987}
-    .toast{background:#17172bf5;border-color:#a78bfa38}
-    .login-box{background:linear-gradient(145deg,#17172d,#0c0c19);border-color:#a78bfa3d}
-    #moreMenu{background:#111126f5!important;border-color:#a78bfa35!important}
-    .video-seek{background:#0b0b19}
-    .footer{padding-bottom:58px}
-    @media(max-width:760px){
-      .nav-inner{height:auto;min-height:68px;flex-wrap:wrap;padding:12px 0;gap:10px}
-      .brand{font-size:20px}
-      .nav-links{display:flex;order:3;width:100%;overflow-x:auto;padding:2px 0 5px;scrollbar-width:none}
-      .nav-links::-webkit-scrollbar{display:none}
-      .nav-links>.nav-btn,.nav-more>.nav-btn{white-space:nowrap}
-      .auth{margin-left:auto}
-      .auth .nav-btn{padding:8px 10px;font-size:12px}
-      .hero{padding:65px 0 38px}
-      h1{letter-spacing:-4px}
-      .level{gap:10px;padding:11px}
-      .level-thumb{width:96px;height:58px}
-      .level-name{font-size:15px}
-      .rank{width:34px;flex:0 0 34px;font-size:18px}
-    }
-    @media(max-width:430px){
-      .nav-inner{width:94%}
-      .brand{font-size:18px;letter-spacing:2px}
-      .auth{gap:5px}
-      .auth .nav-btn{padding:8px;font-size:11px}
-      .level-thumb{width:78px;height:52px}
-      .level-meta{font-size:11px}
-      .hero p{font-size:14px}
-    }
-
   </style></style>
 <style id="possible-ultra-video-css">
 .video-modal{background:radial-gradient(circle at 50% 42%,rgba(93,112,255,.13),transparent 38%),radial-gradient(circle at 15% 85%,rgba(173,86,255,.09),transparent 30%),#010208ee;backdrop-filter:blur(22px) saturate(130%);-webkit-backdrop-filter:blur(22px) saturate(130%);padding:clamp(12px,2.5vw,32px)}
@@ -472,12 +373,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
             <button class="nav-btn" data-view="time-machine" style="width:100%;text-align:left;margin:2px 0">Time Machine</button>
             <button class="nav-btn" data-view="submit" style="width:100%;text-align:left;margin:2px 0">Submit</button>
             <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Staff</button>
+            <button class="nav-btn" id="verifyNav" data-view="verify" style="width:100%;text-align:left;margin:2px 0">Verify</button>
             <button class="nav-btn" id="accountNav" data-view="account" style="width:100%;text-align:left;margin:2px 0">My Account</button>
             <button class="nav-btn admin-only" id="adminNav" data-view="admin" style="width:100%;text-align:left;margin:2px 0">Admin Control Center</button>
           </div>
         </div>
       </nav>
       <div class="auth">
+        <span class="status" id="verifyBadge" style="display:none;margin:0">VERIFICATION PENDING</span>
         <button class="nav-btn" id="createBtn">Create Account</button>
         <button class="nav-btn" id="authBtn">Sign In</button>
       </div>
@@ -582,6 +485,30 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
       </div>
     </section>
 
+    <section class="view" id="view-verify">
+      <div class="section-head">
+        <div><h2>Verify Account</h2><p>Enter the 6-digit code sent to your email.</p></div>
+      </div>
+      <div class="panel" style="max-width:620px">
+        <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT VERIFICATION</div>
+        <h3 style="margin:0 0 8px">Email verification code</h3>
+        <p class="muted">We'll send a one-time 6-digit code to your email. Enter it here to verify your Possible account.</p>
+        <div style="margin-top:16px">
+          <label>Email</label>
+          <input id="verifyPageEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div style="margin-top:12px">
+          <label>6-digit code</label>
+          <input id="verifyPageCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:25px;letter-spacing:8px;text-align:center">
+        </div>
+        <div class="form-actions">
+          <button class="primary" id="verifyPageSend">Send code</button>
+          <button class="secondary" id="verifyPageCheck">Verify code</button>
+        </div>
+        <div id="verifyPageState" class="muted" style="margin-top:12px"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-account">
       <div class="section-head">
         <div><h2>My Account</h2><p>Your Possible account information.</p></div>
@@ -591,6 +518,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
         <div class="admin-card">
           <div class="person-sub">Username</div>
           <div id="accountEmail" style="font-size:18px;font-weight:900;margin-top:5px">Not signed in</div>
+        </div>
+        <div class="admin-card" style="margin-top:10px">
+          <div class="person-sub">Verification</div>
+          <div id="accountVerification" style="font-size:18px;font-weight:900;margin-top:5px">—</div>
         </div>
         <div class="admin-card" style="margin-top:10px">
           <div class="person-sub">Access</div>
@@ -707,6 +638,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
         <div class="completion-note" id="completionState" role="status"></div>
       </form>
     </div>
+  </div>
+</div>
+
+<div id="verifyModal" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:#0009;padding:20px">
+  <div class="panel" style="width:min(430px,100%);box-shadow:0 30px 100px #000b">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <h2 style="margin:0;font-size:21px">Verify your Possible account</h2>
+      <button class="mini" id="closeVerify">✕</button>
+    </div>
+    <p class="muted" style="margin-top:10px">We sent a verification email to <b id="verifyEmail"></b>.</p>
+    <p class="muted">Enter the 6-digit code from the email below.</p>
+    <div style="margin-top:12px"><label>6-digit code</label><input id="verifyModalCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:24px;letter-spacing:7px;text-align:center"></div>
+    <div class="form-actions">
+      <button class="primary" id="resendVerify">Resend code</button>
+      <button class="secondary" id="checkVerify">Verify code</button>
+    </div>
+    <div id="verifyState" class="muted" style="margin-top:12px"></div>
   </div>
 </div>
 
@@ -1414,6 +1362,11 @@ async function refreshAuth(force=false){
   if(seq!==__authRefreshSeq)return;
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
+  if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
+  const pending=!!s && !s.user.email_confirmed_at;
+  $("verifyBadge").style.display=pending?"inline-flex":"none";
+  $("verifyBadge").textContent=pending?"VERIFICATION PENDING":"VERIFIED";
+  if(pending) $("verifyBadge").style.cssText="margin:0;display:inline-flex;color:#ffd36d;border-color:#ffd36d33;background:#ffd36d08";
   const admin=s ? await checkAdmin(s) : false;
   if(seq!==__authRefreshSeq)return;
   $("adminNav").classList.toggle("show",admin);
@@ -1432,6 +1385,65 @@ async function checkAdmin(s){
     return false;
   }
 }
+function openVerifyModal(email){
+  $("verifyEmail").textContent=email||"your email";
+  $("verifyState").textContent="";
+  $("verifyModalCode").value="";
+  $("verifyModal").style.display="flex";
+}
+function closeVerifyModal(){ $("verifyModal").style.display="none"; }
+
+async function verifyCode(email,token,stateEl){
+  if(!email || !/^\d{6}$/.test(token)){
+    stateEl.textContent="Enter the 6-digit code from your email.";
+    return false;
+  }
+  stateEl.textContent="Checking code…";
+  const {data,error}=await sb.auth.verifyOtp({email,token,type:"email"});
+  if(error){
+    stateEl.textContent=error.message;
+    return false;
+  }
+  closeVerifyModal();
+  toast("Email verified. Welcome to Possible!");
+  await claimOwnerIfAvailable(data.session||await session());
+  refreshAuth();
+  return true;
+}
+async function checkEmailVerified(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(user?.email_confirmed_at){
+    closeVerifyModal();
+    toast("Email verified. Welcome to Possible!");
+    await claimOwnerIfAvailable(await session());
+    refreshAuth();
+    return true;
+  }
+  return false;
+}
+async function resendVerification(){
+  const email=$("verifyEmail").textContent;
+  if(!email || email==="your email") return;
+  const {error}=await sb.auth.resend({type:"signup",email});
+  $("verifyState").textContent=error ? error.message : "New verification code sent.";
+}
+$("closeVerify").onclick=closeVerifyModal;
+$("resendVerify").onclick=resendVerification;
+$("checkVerify").onclick=async()=>{
+  await verifyCode($("verifyEmail").textContent,$("verifyModalCode").value.trim(),$("verifyState"));
+};
+
+$("verifyPageSend").onclick=async()=>{
+  const email=$("verifyPageEmail").value.trim();
+  if(!email){$("verifyPageState").textContent="Enter your email first.";return;}
+  const {error}=await sb.auth.resend({type:"signup",email});
+  $("verifyPageState").textContent=error?error.message:"Verification code sent. Check your inbox.";
+};
+$("verifyPageCheck").onclick=async()=>{
+  const email=$("verifyPageEmail").value.trim();
+  await verifyCode(email,$("verifyPageCode").value.trim(),$("verifyPageState"));
+};
+
 async function claimOwnerIfAvailable(s){
   if(!s) return false;
   try{
@@ -1448,7 +1460,7 @@ async function createAccount(){
   const username=prompt("Choose a username (3–20 letters, numbers, or underscores):")?.trim();
   if(!username)return;
   if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){toast("Username must be 3–20 characters using letters, numbers, or underscores.");return;}
-  const email=prompt("Email for account sign-in and recovery:");
+  const email=prompt("Email for account verification and recovery:");
   const password=prompt("Choose a password:");
   if(!email||!password)return;
   const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
@@ -1457,7 +1469,10 @@ async function createAccount(){
     await claimOwnerIfAvailable(data.session);
     toast("Account created and signed in as "+username+".");
   }else{
-    toast("Account created. Check your email and use the confirmation link before signing in.");
+    $("verifyPageEmail").value=email;
+    $("verifyPageCode").value="";
+    showView("verify");
+    $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code sent to your email.";
   }
   refreshAuth();
 }
@@ -2104,12 +2119,13 @@ async function loadAccount(){
     if(data?.username)username=data.username;
   }
   $("accountEmail").textContent=username;
+  $("accountVerification").textContent=s?.user?.email_confirmed_at?"VERIFIED":"VERIFICATION PENDING";
   const isAdmin=await checkAdmin(s);
   $("accountRole").textContent=isAdmin?"OWNER / ADMIN":"USER";
 }
 
 const startHash=(location.hash||"#rankings").slice(1);
-const initialView=["rankings","creators","players","changes","time-machine","submit","staff","account","admin"].includes(startHash)?startHash:"rankings";
+const initialView=["rankings","creators","players","changes","time-machine","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
 refreshAuth();
 </script>
