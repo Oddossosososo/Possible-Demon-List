@@ -735,7 +735,7 @@ function openAdminDialog({title,subtitle="",fields=[],confirmText="Save",danger=
           ? `<textarea data-dialog-index="${i}" placeholder="${escapeHTML(f.placeholder||"")}">${escapeHTML(f.value??"")}</textarea>`
           : f.type==="select"
             ? `<select data-dialog-index="${i}" aria-label="${escapeHTML(f.label||"Choose an option")}">${(f.options||[]).map(o=>`<option value="${escapeHTML(o.value)}" ${String(o.value)===String(f.value)?"selected":""}>${escapeHTML(o.label)}</option>`).join("")}</select>`
-            : `<input data-dialog-index="${i}" type="${f.type||"text"}" value="${escapeHTML(f.value??"")}" placeholder="${escapeHTML(f.placeholder||"")}">`}
+            : `<input data-dialog-index="${i}" type="${f.type||"text"}" value="${escapeHTML(f.value??"")}" placeholder="${escapeHTML(f.placeholder||"")}" min="${f.min??""}" max="${f.max??""}" ${f.readonly?"readonly":""}>`}
       </div>`).join("")+'</div>';
 
     body.querySelectorAll('input[data-dialog-index],textarea[data-dialog-index]').forEach((el,i)=>{
