@@ -264,6 +264,8 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
 .ranking-search{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:0 14px;border:1px solid var(--line);border-radius:15px;background:rgba(16,20,38,.8)}
 .ranking-search span{font-size:23px;color:#9caaff}.ranking-search input{border:0!important;background:transparent!important;box-shadow:none!important;padding:13px 0;min-width:0}
 .ranking-tools select{width:auto;min-width:145px}
+.ranking-tools{flex-wrap:wrap}
+.difficulty-group{margin:24px 0 30px}.difficulty-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 12px;padding-bottom:10px;border-bottom:1px solid var(--line)}.difficulty-group-head h3{margin:0;font-size:17px;letter-spacing:-.3px}.difficulty-group-head span{color:var(--muted);font-size:12px;font-weight:800}
 .cards{gap:11px}
 .level{min-height:96px;padding:15px 18px;border-radius:18px;border-color:rgba(160,174,255,.13);background:linear-gradient(105deg,rgba(22,28,51,.96),rgba(12,16,30,.98));box-shadow:0 12px 35px rgba(0,0,0,.22)}
 .level:hover{border-color:#9baaff65;box-shadow:0 16px 45px #0006,0 0 30px #788cff15}
@@ -352,7 +354,7 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
       </div>
       <div class="ranking-tools">
         <div class="ranking-search"><span>⌕</span><input id="levelSearch" type="search" placeholder="Search levels, creators or GD IDs…" autocomplete="off"></div>
-        <select id="levelStatusFilter" aria-label="Filter levels"><option value="all">All levels</option><option value="unbeaten">Unbeaten</option><option value="beaten">Beaten</option></select>
+        <select id="levelDifficultyFilter" aria-label="Filter by difficulty"><option value="all">All difficulties</option><option>Easy</option><option>Normal</option><option>Hard</option><option>Harder</option><option>Insane</option><option>Easy Demon</option><option>Medium Demon</option><option>Hard Demon</option><option>Insane Demon</option><option>Extreme Demon</option></select><select id="levelStatusFilter" aria-label="Filter levels"><option value="all">All statuses</option><option value="unbeaten">Unbeaten</option><option value="beaten">Beaten</option></select>
       </div>
       <div id="rankings" class="cards"><div class="empty">Loading Possible…</div></div>
     </section>
@@ -872,32 +874,34 @@ document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("cli
 let __levelsPromise=null;
 let __allLevels=[];
 let __levelFilter="all";
+let __difficultyFilter="all";
+const GD_DIFFICULTIES=["Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon"];
+function levelDifficulty(level){const value=String(level.difficulty||level.gd_difficulty||"Extreme Demon").trim();return GD_DIFFICULTIES.includes(value)?value:"Extreme Demon";}
 function renderLevels(){
   const el=$("rankings");
   const q=String($("levelSearch")?.value||"").trim().toLowerCase();
   const rows=__allLevels.filter(l=>{
     const status=String(l.status||"unbeaten").toLowerCase();
     const matchesStatus=__levelFilter==="all" || status===__levelFilter;
-    const hay=[l.name,l.creator,l.gd_level_id,l.current_wr].join(" ").toLowerCase();
-    return matchesStatus && (!q || hay.includes(q));
+    const matchesDifficulty=__difficultyFilter==="all" || levelDifficulty(l)===__difficultyFilter;
+    const hay=[l.name,l.creator,l.gd_level_id,l.current_wr,levelDifficulty(l)].join(" ").toLowerCase();
+    return matchesStatus && matchesDifficulty && (!q || hay.includes(q));
   });
   const unbeaten=__allLevels.filter(x=>x.status!=="beaten").length;
   const beaten=__allLevels.filter(x=>x.status==="beaten").length;
   $("levelCount").textContent=rows.length+" shown · "+unbeaten+" unbeaten · "+beaten+" beaten";
-  el.innerHTML=rows.length?rows.map((l,i)=>{
-    const beaten=l.status==="beaten";
-    const rank=l.current_rank??"—";
-    return `<article class="level ${beaten?"level-beaten":""}">
-      <div class="rank ${Number(rank)===1?"top":""}">${rank==="—"?"—":"#"+rank}</div>
-      ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
-      <div class="level-main">
-        <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
-        <div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div>
-        <div class="level-id">GD ID ${escapeHTML(l.gd_level_id??"—")}</div>
-        ${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':""}
-      </div>
-      <div class="status ${beaten?"status-beaten":"status-unbeaten"}">${beaten?"✓ BEATEN":"● UNBEATEN"}</div>
-    </article>`;
+  el.innerHTML=rows.length?GD_DIFFICULTIES.filter(d=>rows.some(l=>levelDifficulty(l)===d)).map(d=>{
+    const group=rows.filter(l=>levelDifficulty(l)===d).sort((a,b)=>Number(a.current_rank||999999)-Number(b.current_rank||999999));
+    return `<section class="difficulty-group"><div class="difficulty-group-head"><h3>${d}</h3><span>${group.length} level${group.length===1?"":"s"} · independent ranking</span></div><div class="cards">${group.map((l,i)=>{
+      const isBeaten=l.status==="beaten";
+      const rank=i+1;
+      return `<article class="level ${isBeaten?"level-beaten":""}">
+        <div class="rank ${rank===1?"top":""}">#${rank}</div>
+        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
+        <div class="level-main"><div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div><div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div><div class="level-id">GD ID ${escapeHTML(l.gd_level_id??"—")}</div>${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':""}</div>
+        <div class="status ${isBeaten?"status-beaten":"status-unbeaten"}">${isBeaten?"✓ BEATEN":"● UNBEATEN"}</div>
+      </article>`;
+    }).join("")}</div></section>`;
   }).join(""):'<div class="empty">No levels match this search.</div>';
 }
 async function loadLevels(){
@@ -910,9 +914,10 @@ async function loadLevels(){
       if(!r.ok)throw new Error(json?.error||"Could not load levels");
       __allLevels=(Array.isArray(json)?json:(json.data||[])).filter(x=>x.status!=="archived");
       renderLevels();
-      const search=$("levelSearch"),filter=$("levelStatusFilter");
+      const search=$("levelSearch"),filter=$("levelStatusFilter"),difficulty=$("levelDifficultyFilter");
       if(search&&!search.dataset.bound){search.dataset.bound="1";search.addEventListener("input",renderLevels);}
       if(filter&&!filter.dataset.bound){filter.dataset.bound="1";filter.addEventListener("change",()=>{__levelFilter=filter.value;renderLevels();});}
+      if(difficulty&&!difficulty.dataset.bound){difficulty.dataset.bound="1";difficulty.addEventListener("change",()=>{__difficultyFilter=difficulty.value;renderLevels();});}
     }catch(e){console.error(e);el.innerHTML='<div class="empty">Couldn’t load the Possible list.</div>';}
   })().finally(()=>{__levelsPromise=null});
   return __levelsPromise;
@@ -1802,6 +1807,7 @@ window.editLevel=async(id)=>{
       {key:"creator",label:"Creator",value:x.creator},
       {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
       {key:"current_wr",label:"Current WR",value:x.current_wr||"",normalize:"percent"},
+      {key:"difficulty",label:"Geometry Dash difficulty",type:"select",value:levelDifficulty(x),options:GD_DIFFICULTIES.map(v=>({value:v,label:v}))},
       {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",value:Number(x.difficulty_points)||0},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
       {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
@@ -1816,7 +1822,7 @@ window.editLevel=async(id)=>{
   }
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j2=await adminPost({
-    action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,
+    action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,difficulty:result.difficulty||"Extreme Demon",
     current_wr:normalizeCurrentWR(result.current_wr),
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:result.thumbnail_url?.trim()||autoThumb,notes:result.notes||""
@@ -1832,6 +1838,7 @@ window.createLevel=async()=>{
     fields:[
       {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"Auto-filled from level name",readonly:true},
       {key:"current_wr",label:"Current WR",placeholder:"Player name / record",normalize:"percent"},
+      {key:"difficulty",label:"Geometry Dash difficulty",type:"select",value:"Extreme Demon",options:GD_DIFFICULTIES.map(v=>({value:v,label:v}))},
       {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",placeholder:"0 to 3"},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
@@ -1857,7 +1864,7 @@ window.createLevel=async()=>{
   }
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j=await adminPost({
-    action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),
+    action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),difficulty:result.difficulty||"Extreme Demon",
     current_wr:normalizeCurrentWR(result.current_wr),
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:autoThumb,notes:result.notes||""
