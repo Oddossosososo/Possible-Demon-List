@@ -285,14 +285,22 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
 
 
 <style id="possible-skip-ad-click-zone">
-/* Allow a small bottom-right iframe click zone for YouTube's Skip Ad button.
-   The rest of the video remains shielded by the existing click-blocking layers. */
+/* The YouTube iframe is cross-origin, so the Skip Ad control cannot be
+   be detected directly. Keep only its usual bottom-right region clickable. */
+.video-frame-wrap{position:relative}
 .video-frame-wrap iframe{pointer-events:auto!important}
-.video-lock{pointer-events:auto!important}
-.video-lock-top{inset:0 0 76px 0;pointer-events:auto!important}
-.video-lock-left{left:0;bottom:0;width:76px;height:76px;pointer-events:auto!important}
-.video-lock-bottom-mid{left:76px;right:180px;bottom:0;height:76px;pointer-events:auto!important}
-.video-lock-right-top{right:0;bottom:60px;width:180px;height:16px;pointer-events:auto!important}
+.video-start-hint{pointer-events:none!important}
+.video-frame-wrap:after{pointer-events:none!important}
+.video-lock{z-index:10;pointer-events:auto!important;touch-action:pan-y}
+.video-lock-top{inset:0 0 100px 0;pointer-events:auto!important}
+.video-lock-left{left:0;bottom:0;width:76px;height:100px;pointer-events:auto!important}
+.video-lock-bottom-mid{left:76px;right:250px;bottom:0;height:100px;pointer-events:auto!important}
+.video-lock-right-top{display:none!important}
+@media(max-width:600px){
+  .video-lock-top{bottom:112px}
+  .video-lock-left{height:112px}
+  .video-lock-bottom-mid{height:112px;right:220px}
+}
 </style>
 </head>
 <body>
