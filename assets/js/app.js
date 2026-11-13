@@ -152,13 +152,19 @@ function setupVideoPlayer(id){
   videoStarted=false;
   const pauseButton=$("videoPause");
   if(pauseButton){pauseButton.textContent="❚❚";pauseButton.setAttribute("aria-label","Pause video")}
-  const params="autoplay=0&mute=0&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&modestbranding=1&enablejsapi=1&iv_load_policy=3&origin="+encodeURIComponent(location.origin);
-  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?"+params;
+  frame.removeAttribute("src");
   frame.setAttribute("allow","autoplay; encrypted-media; picture-in-picture");
   if(typeof YT!=="undefined" && YT.Player){
     setTimeout(()=>{
       try{
         videoPlayer=new YT.Player("videoFrame",{
+          host:"https://www.youtube-nocookie.com",
+          videoId:id,
+          playerVars:{
+            autoplay:0,mute:0,controls:0,disablekb:1,fs:0,rel:0,
+            playsinline:1,modestbranding:1,enablejsapi:1,iv_load_policy:3,
+            origin:location.origin
+          },
           events:{
             onReady:()=>{
               videoStarted=false;
