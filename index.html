@@ -1043,16 +1043,21 @@ function openLevelDetails(level){
   $("detailsTitle").textContent=level.name||"Unnamed level";
   $("detailsCreator").textContent=(level.creator||"Unknown creator")+" · GD ID "+(level.gd_level_id??"—")+" · "+levelDifficulty(level);
   $("detailsDescription").textContent=level.description||"No description has been added for this level yet.";
-  $("detailsMeta").textContent=level.min_progress==null?"No minimum progress requirement set for this level.":"Minimum progress required: "+level.min_progress+"%";
+  const rank=Number(level.current_rank)||0;
+  const minRequirement=rank>0&&rank<=25?50:rank<=75&&rank>0?60:rank<=150&&rank>0?75:100;
+  $("detailsMeta").textContent=rank>0
+    ? "Rank #"+rank+" · 100% value: "+(350*Math.exp(-0.032*(rank-1))).toFixed(2)+" points · Minimum progress: "+minRequirement+"%"
+    : "This level needs a ranked position before it can earn points.";
   const ownProgress=__myLevelProgress.get(String(level.id));
   $("myLevelProgress").textContent=ownProgress
     ? (Number(ownProgress.progress)===100?"✓ You have beaten this level. ":"Your best approved progress: "+ownProgress.progress+"%. ")+
       "Your points are calculated on the Players leaderboard."
     : "Your personal progress appears here after staff approval. Sign in to track your own records.";
-  $("completionRequirement").textContent=level.min_progress==null
-    ?"No minimum progress is set. Submit your current progress for review."
-    :"This level requires at least "+level.min_progress+"% progress. The value is set by the Possible admin team.";
-  $("completionProgress").min=String(level.min_progress==null?0:Number(level.min_progress));
+  const minRequirement=rank>0&&rank<=25?50:rank<=75&&rank>0?60:rank<=150&&rank>0?75:100;
+  $("completionRequirement").textContent=rank>0
+    ? "Automatic minimum: "+minRequirement+"% for rank #"+rank+". Progress below this threshold can be submitted but earns 0 points."
+    : "This level is unranked and earns 0 points until it receives a list rank.";
+  $("completionProgress").min="0";
   $("completionProgress").value="";
   $("completionPlayer").value="";
   $("completionCountry").value="";
@@ -2019,8 +2024,6 @@ window.editLevel=async(id)=>{
       {key:"gd",label:"Geometry Dash ID",type:"number",value:x.gd_level_id},
       {key:"current_wr",label:"Current WR",value:x.current_wr||"",normalize:"percent"},
       {key:"difficulty",label:"Geometry Dash difficulty",type:"select",value:levelDifficulty(x),options:GD_DIFFICULTIES.map(v=>({value:v,label:v}))},
-      {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",value:Number(x.difficulty_points)||0},
-      {key:"min_progress",label:"Minimum progress (%) — optional",type:"number",value:x.min_progress??"",placeholder:"Leave blank for no minimum",min:0,max:100},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
       {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
       {key:"notes",label:"Admin notes",type:"textarea",value:x.notes||"",wide:true}
@@ -2050,8 +2053,6 @@ window.createLevel=async()=>{
       {key:"gd",label:"Geometry Dash ID",type:"number",placeholder:"Auto-filled from level name",readonly:true},
       {key:"current_wr",label:"Current WR",placeholder:"Player name / record",normalize:"percent"},
       {key:"difficulty",label:"Geometry Dash difficulty",type:"select",value:"Extreme Demon",options:GD_DIFFICULTIES.map(v=>({value:v,label:v}))},
-      {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",placeholder:"0 to 3"},
-      {key:"min_progress",label:"Minimum progress (%) — optional",type:"number",placeholder:"Leave blank for no minimum",min:0,max:100},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
       {key:"verification_url",label:"YouTube / Verification URL",placeholder:"https://youtube.com/watch?v=...",wide:true},
