@@ -899,11 +899,16 @@ function levelDifficulty(level){const value=String(level.difficulty||level.gd_di
 function renderLevels(){
   const el=$("rankings");
   const q=String($("levelSearch")?.value||"").trim().toLowerCase();
+  // Read the live controls on every render so filtering never depends on
+  // whether the data request finished before the user changed a selector.
+  const statusFilter=String($("levelStatusFilter")?.value||__levelFilter||"all").toLowerCase();
+  const difficultyFilter=String($("levelDifficultyFilter")?.value||__difficultyFilter||"all").trim().toLowerCase();
   const rows=__allLevels.filter(l=>{
-    const status=String(l.status||"unbeaten").toLowerCase();
-    const matchesStatus=__levelFilter==="all" || status===__levelFilter;
-    const matchesDifficulty=__difficultyFilter==="all" || levelDifficulty(l)===__difficultyFilter;
-    const hay=[l.name,l.creator,l.gd_level_id,l.current_wr,levelDifficulty(l)].join(" ").toLowerCase();
+    const status=String(l.status||"unbeaten").trim().toLowerCase();
+    const difficulty=levelDifficulty(l);
+    const matchesStatus=statusFilter==="all" || status===statusFilter;
+    const matchesDifficulty=difficultyFilter==="all" || difficulty.toLowerCase()===difficultyFilter;
+    const hay=[l.name,l.creator,l.gd_level_id,l.current_wr,difficulty].join(" ").toLowerCase();
     return matchesStatus && matchesDifficulty && (!q || hay.includes(q));
   });
   const unbeaten=__allLevels.filter(x=>x.status!=="beaten").length;
@@ -924,6 +929,14 @@ function renderLevels(){
     }).join("")}</div></section>`;
   }).join(""):'<div class="empty">No levels match this search.</div>';
 }
+function bindRankingFilters(){
+  const search=$("levelSearch"),status=$("levelStatusFilter"),difficulty=$("levelDifficultyFilter");
+  if(search&&!search.dataset.bound){search.dataset.bound="1";search.addEventListener("input",renderLevels);}
+  if(status&&!status.dataset.bound){status.dataset.bound="1";status.addEventListener("change",()=>{__levelFilter=status.value;renderLevels();});}
+  if(difficulty&&!difficulty.dataset.bound){difficulty.dataset.bound="1";difficulty.addEventListener("change",()=>{__difficultyFilter=difficulty.value;renderLevels();});}
+}
+bindRankingFilters();
+
 async function loadLevels(){
   if(__levelsPromise)return __levelsPromise;
   const el=$("rankings");
@@ -934,10 +947,8 @@ async function loadLevels(){
       if(!r.ok)throw new Error(json?.error||"Could not load levels");
       __allLevels=(Array.isArray(json)?json:(json.data||[])).filter(x=>x.status!=="archived");
       renderLevels();
-      const search=$("levelSearch"),filter=$("levelStatusFilter"),difficulty=$("levelDifficultyFilter");
-      if(search&&!search.dataset.bound){search.dataset.bound="1";search.addEventListener("input",renderLevels);}
-      if(filter&&!filter.dataset.bound){filter.dataset.bound="1";filter.addEventListener("change",()=>{__levelFilter=filter.value;renderLevels();});}
-      if(difficulty&&!difficulty.dataset.bound){difficulty.dataset.bound="1";difficulty.addEventListener("change",()=>{__difficultyFilter=difficulty.value;renderLevels();});}
+      bindRankingFilters();
+      renderLevels();
     }catch(e){console.error(e);el.innerHTML='<div class="empty">Couldn’t load the Possible list.</div>';}
   })().finally(()=>{__levelsPromise=null});
   return __levelsPromise;
