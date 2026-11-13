@@ -1042,7 +1042,7 @@ async function loadLevels(){
   const el=$("rankings");
   __levelsPromise=(async()=>{el.innerHTML='<div class="empty">Loading the level list…</div>';
     try{
-      const r=await fetch(API.levels+"?t="+Date.now(),{cache:"no-store"});
+      const r=await fetch(API.levels+"?t="+Date.now(),{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"});
       const json=await r.json();
       if(!r.ok)throw new Error(json?.error||"Could not load levels");
       __allLevels=(Array.isArray(json)?json:(json.data||[])).filter(x=>x.status!=="archived");
@@ -1136,7 +1136,7 @@ let __communityPromise=null;
 async function loadCommunity(){
   if(__communityPromise)return __communityPromise;
   __communityPromise=(async()=>{try{
-    const r=await fetch(API.community); const j=await r.json();
+    const r=await fetch(API.community,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"}); const j=await r.json();
     const creators=(j?.data?.creators||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
     const players=(j?.data?.players||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
     $("creators").innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No creators yet.</div>';
@@ -1256,7 +1256,7 @@ async function loadChanges(){
   const el=$("changes");
   __changesPromise=(async()=>{ el.innerHTML='<div class="empty">Loading changelog…</div>';
   try{
-    const r=await fetch(API.changes+"?limit=60&t="+Date.now(),{cache:"no-store"}); const data=await r.json(); if(!r.ok) throw new Error();
+    const r=await fetch(API.changes+"?limit=60&t="+Date.now(),{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"}); const data=await r.json(); if(!r.ok) throw new Error();
     const items=Array.isArray(data)?data:(data.data||[]);
     el.innerHTML=items.length?items.map(c=>`
       <article class="change">
@@ -1276,7 +1276,7 @@ let __tmReady=false;
 async function loadShortestReign(){
   const out=$("reignRecord"); if(!out)return;
   try{
-    const r=await fetch(API.changes+"?limit=200&t="+Date.now(),{cache:"no-store"});
+    const r=await fetch(API.changes+"?limit=200&t="+Date.now(),{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"});
     const j=await r.json(); if(!r.ok)throw new Error(j?.error||"Changelog unavailable");
     const rows=Array.isArray(j)?j:(j.data||[]), sorted=rows.slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     const active=new Map(), completed=[];
@@ -1310,7 +1310,7 @@ async function loadTimeMachine(){
     const localDate=new Date(date);
     if(Number.isNaN(localDate.getTime())){state.textContent="Select a valid snapshot time first.";return;}
     const at=localDate.toISOString();
-    const r=await fetch(API.levels+"?at="+encodeURIComponent(at)+"&t="+Date.now(),{cache:"no-store"});
+    const r=await fetch(API.levels+"?at="+encodeURIComponent(at)+"&t="+Date.now(),{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"});
     const json=await r.json();
     if(!r.ok)throw new Error(json?.error||"Snapshot unavailable");
     const levels=Array.isArray(json)?json:(json.data||[]);
