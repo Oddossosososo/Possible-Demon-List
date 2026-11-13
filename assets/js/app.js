@@ -152,7 +152,7 @@ function setupVideoPlayer(id){
   videoStarted=false;
   const pauseButton=$("videoPause");
   if(pauseButton){pauseButton.textContent="❚❚";pauseButton.setAttribute("aria-label","Pause video")}
-  const params="autoplay=1&mute=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&modestbranding=1&enablejsapi=1&iv_load_policy=3&origin="+encodeURIComponent(location.origin);
+  const params="autoplay=0&mute=0&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&modestbranding=1&enablejsapi=1&iv_load_policy=3&origin="+encodeURIComponent(location.origin);
   frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?"+params;
   frame.setAttribute("allow","autoplay; encrypted-media; picture-in-picture");
   if(typeof YT!=="undefined" && YT.Player){
@@ -161,12 +161,9 @@ function setupVideoPlayer(id){
         videoPlayer=new YT.Player("videoFrame",{
           events:{
             onReady:()=>{
-              try{
-                videoPlayer.unMute();
-                videoPlayer.setVolume(100);
-                videoPlayer.playVideo();
-              }catch{}
-              videoStarted=true;
+              videoStarted=false;
+              const b=$("videoPause");
+              if(b){b.textContent="▶";b.setAttribute("aria-label","Play video")}
               updateVideoSeek();
               clearInterval(videoTicker);
               videoTicker=setInterval(updateVideoSeek,250);
@@ -261,6 +258,8 @@ if(videoPauseButton){
         videoPauseButton.setAttribute("aria-label","Play video");
       }else{
         videoPaused=false;
+        videoPlayer.unMute();
+        videoPlayer.setVolume(100);
         videoPlayer.playVideo();
         videoPauseButton.textContent="❚❚";
         videoPauseButton.setAttribute("aria-label","Pause video");
