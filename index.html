@@ -283,6 +283,17 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
 @media(max-width:650px){.hero{padding-top:58px}h1{letter-spacing:-4px}.ranking-tools{align-items:stretch;flex-direction:column}.ranking-tools select{width:100%}.level{gap:10px;padding:12px}.level-thumb{width:92px;height:60px}.level-name{font-size:15px}.status{font-size:9px;padding:6px 8px}.rank{width:34px;flex-basis:34px;font-size:17px}}
 </style>
 
+
+<style id="possible-skip-ad-click-zone">
+/* Allow a small bottom-right iframe click zone for YouTube's Skip Ad button.
+   The rest of the video remains shielded by the existing click-blocking layers. */
+.video-frame-wrap iframe{pointer-events:auto!important}
+.video-lock{pointer-events:auto!important}
+.video-lock-top{inset:0 0 76px 0;pointer-events:auto!important}
+.video-lock-left{left:0;bottom:0;width:76px;height:76px;pointer-events:auto!important}
+.video-lock-bottom-mid{left:76px;right:180px;bottom:0;height:76px;pointer-events:auto!important}
+.video-lock-right-top{right:0;bottom:60px;width:180px;height:16px;pointer-events:auto!important}
+</style>
 </head>
 <body>
 <div class="app">
