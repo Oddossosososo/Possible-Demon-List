@@ -373,12 +373,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
             <button class="nav-btn" data-view="time-machine" style="width:100%;text-align:left;margin:2px 0">Time Machine</button>
             <button class="nav-btn" data-view="submit" style="width:100%;text-align:left;margin:2px 0">Submit</button>
             <button class="nav-btn" data-view="staff" style="width:100%;text-align:left;margin:2px 0">Staff</button>
+            <button class="nav-btn" id="verifyNav" data-view="verify" style="width:100%;text-align:left;margin:2px 0">Verify</button>
             <button class="nav-btn" id="accountNav" data-view="account" style="width:100%;text-align:left;margin:2px 0">My Account</button>
             <button class="nav-btn admin-only" id="adminNav" data-view="admin" style="width:100%;text-align:left;margin:2px 0">Admin Control Center</button>
           </div>
         </div>
       </nav>
       <div class="auth">
+        <span class="status" id="verifyBadge" style="display:none;margin:0">VERIFICATION PENDING</span>
         <button class="nav-btn" id="createBtn">Create Account</button>
         <button class="nav-btn" id="authBtn">Sign In</button>
       </div>
@@ -483,6 +485,30 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
       </div>
     </section>
 
+    <section class="view" id="view-verify">
+      <div class="section-head">
+        <div><h2>Verify Account</h2><p>Enter the 6-digit code sent to your email.</p></div>
+      </div>
+      <div class="panel" style="max-width:620px">
+        <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT VERIFICATION</div>
+        <h3 style="margin:0 0 8px">Email verification code</h3>
+        <p class="muted">We'll send a one-time 6-digit code to your email. Enter it here to verify your Possible account.</p>
+        <div style="margin-top:16px">
+          <label>Email</label>
+          <input id="verifyPageEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div style="margin-top:12px">
+          <label>6-digit code</label>
+          <input id="verifyPageCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:25px;letter-spacing:8px;text-align:center">
+        </div>
+        <div class="form-actions">
+          <button class="primary" id="verifyPageSend">Send code</button>
+          <button class="secondary" id="verifyPageCheck">Verify code</button>
+        </div>
+        <div id="verifyPageState" class="muted" style="margin-top:12px"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-account">
       <div class="section-head">
         <div><h2>My Account</h2><p>Your Possible account information.</p></div>
@@ -492,6 +518,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
         <div class="admin-card">
           <div class="person-sub">Username</div>
           <div id="accountEmail" style="font-size:18px;font-weight:900;margin-top:5px">Not signed in</div>
+        </div>
+        <div class="admin-card" style="margin-top:10px">
+          <div class="person-sub">Verification</div>
+          <div id="accountVerification" style="font-size:18px;font-weight:900;margin-top:5px">—</div>
         </div>
         <div class="admin-card" style="margin-top:10px">
           <div class="person-sub">Access</div>
@@ -608,6 +638,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
         <div class="completion-note" id="completionState" role="status"></div>
       </form>
     </div>
+  </div>
+</div>
+
+<div id="verifyModal" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:#0009;padding:20px">
+  <div class="panel" style="width:min(430px,100%);box-shadow:0 30px 100px #000b">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <h2 style="margin:0;font-size:21px">Verify your Possible account</h2>
+      <button class="mini" id="closeVerify">✕</button>
+    </div>
+    <p class="muted" style="margin-top:10px">We sent a verification email to <b id="verifyEmail"></b>.</p>
+    <p class="muted">Enter the 6-digit code from the email below.</p>
+    <div style="margin-top:12px"><label>6-digit code</label><input id="verifyModalCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:24px;letter-spacing:7px;text-align:center"></div>
+    <div class="form-actions">
+      <button class="primary" id="resendVerify">Resend code</button>
+      <button class="secondary" id="checkVerify">Verify code</button>
+    </div>
+    <div id="verifyState" class="muted" style="margin-top:12px"></div>
   </div>
 </div>
 
@@ -1315,6 +1362,11 @@ async function refreshAuth(force=false){
   if(seq!==__authRefreshSeq)return;
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
+  if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
+  const pending=!!s && !s.user.email_confirmed_at;
+  $("verifyBadge").style.display=pending?"inline-flex":"none";
+  $("verifyBadge").textContent=pending?"VERIFICATION PENDING":"VERIFIED";
+  if(pending) $("verifyBadge").style.cssText="margin:0;display:inline-flex;color:#ffd36d;border-color:#ffd36d33;background:#ffd36d08";
   const admin=s ? await checkAdmin(s) : false;
   if(seq!==__authRefreshSeq)return;
   $("adminNav").classList.toggle("show",admin);
@@ -1333,6 +1385,65 @@ async function checkAdmin(s){
     return false;
   }
 }
+function openVerifyModal(email){
+  $("verifyEmail").textContent=email||"your email";
+  $("verifyState").textContent="";
+  $("verifyModalCode").value="";
+  $("verifyModal").style.display="flex";
+}
+function closeVerifyModal(){ $("verifyModal").style.display="none"; }
+
+async function verifyCode(email,token,stateEl){
+  if(!email || !/^\d{6}$/.test(token)){
+    stateEl.textContent="Enter the 6-digit code from your email.";
+    return false;
+  }
+  stateEl.textContent="Checking code…";
+  const {data,error}=await sb.auth.verifyOtp({email,token,type:"email"});
+  if(error){
+    stateEl.textContent=error.message;
+    return false;
+  }
+  closeVerifyModal();
+  toast("Email verified. Welcome to Possible!");
+  await claimOwnerIfAvailable(data.session||await session());
+  refreshAuth();
+  return true;
+}
+async function checkEmailVerified(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(user?.email_confirmed_at){
+    closeVerifyModal();
+    toast("Email verified. Welcome to Possible!");
+    await claimOwnerIfAvailable(await session());
+    refreshAuth();
+    return true;
+  }
+  return false;
+}
+async function resendVerification(){
+  const email=$("verifyEmail").textContent;
+  if(!email || email==="your email") return;
+  const {error}=await sb.auth.resend({type:"signup",email});
+  $("verifyState").textContent=error ? error.message : "New verification code sent.";
+}
+$("closeVerify").onclick=closeVerifyModal;
+$("resendVerify").onclick=resendVerification;
+$("checkVerify").onclick=async()=>{
+  await verifyCode($("verifyEmail").textContent,$("verifyModalCode").value.trim(),$("verifyState"));
+};
+
+$("verifyPageSend").onclick=async()=>{
+  const email=$("verifyPageEmail").value.trim();
+  if(!email){$("verifyPageState").textContent="Enter your email first.";return;}
+  const {error}=await sb.auth.resend({type:"signup",email});
+  $("verifyPageState").textContent=error?error.message:"Verification code sent. Check your inbox.";
+};
+$("verifyPageCheck").onclick=async()=>{
+  const email=$("verifyPageEmail").value.trim();
+  await verifyCode(email,$("verifyPageCode").value.trim(),$("verifyPageState"));
+};
+
 async function claimOwnerIfAvailable(s){
   if(!s) return false;
   try{
@@ -1349,7 +1460,7 @@ async function createAccount(){
   const username=prompt("Choose a username (3–20 letters, numbers, or underscores):")?.trim();
   if(!username)return;
   if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){toast("Username must be 3–20 characters using letters, numbers, or underscores.");return;}
-  const email=prompt("Email address (used for account recovery):")?.trim();
+  const email=prompt("Email for account verification and recovery:");
   const password=prompt("Choose a password:");
   if(!email||!password)return;
   const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
@@ -1358,7 +1469,10 @@ async function createAccount(){
     await claimOwnerIfAvailable(data.session);
     toast("Account created and signed in as "+username+".");
   }else{
-    toast("Account created. Email confirmation is still enabled in Supabase Auth settings; disable it to allow instant sign-in.");
+    $("verifyPageEmail").value=email;
+    $("verifyPageCode").value="";
+    showView("verify");
+    $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code sent to your email.";
   }
   refreshAuth();
 }
@@ -2005,12 +2119,13 @@ async function loadAccount(){
     if(data?.username)username=data.username;
   }
   $("accountEmail").textContent=username;
+  $("accountVerification").textContent=s?.user?.email_confirmed_at?"VERIFIED":"VERIFICATION PENDING";
   const isAdmin=await checkAdmin(s);
   $("accountRole").textContent=isAdmin?"OWNER / ADMIN":"USER";
 }
 
 const startHash=(location.hash||"#rankings").slice(1);
-const initialView=["rankings","creators","players","changes","time-machine","submit","staff","account","admin"].includes(startHash)?startHash:"rankings";
+const initialView=["rankings","creators","players","changes","time-machine","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
 refreshAuth();
 </script>
