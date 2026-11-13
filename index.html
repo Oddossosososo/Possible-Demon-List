@@ -75,6 +75,7 @@
         <div class="ranking-search"><span>⌕</span><input id="levelSearch" type="search" placeholder="Search levels, creators or GD IDs…" autocomplete="off"></div>
         <select id="levelDifficultyFilter" aria-label="Filter by difficulty"><option value="all">All difficulties</option><option>Easy</option><option>Normal</option><option>Hard</option><option>Harder</option><option>Insane</option><option>Easy Demon</option><option>Medium Demon</option><option>Hard Demon</option><option>Insane Demon</option><option>Extreme Demon</option></select><select id="levelStatusFilter" aria-label="Filter by whether you have beaten the level"><option value="all">All levels</option><option value="beaten">If you have beaten it</option><option value="unbeaten">If you haven’t beaten it</option></select>
       </div>
+      <div id="featuredLevelBanner" class="featured-level-banner" hidden></div>
       <div id="rankings" class="cards"><div class="empty">Loading the level list…</div></div>
     </section>
 
@@ -280,6 +281,7 @@
 
 <div class="details-modal" id="levelDetailsModal" aria-hidden="true">
   <div class="details-shell" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+    <div class="details-banner" id="detailsBanner"><img id="detailsBannerImage" alt="" loading="lazy"><div class="details-banner-shade"></div><div class="details-banner-rank" id="detailsBannerRank">RANK —</div><div class="details-banner-caption"><span>POSSIBLE LEVEL PROFILE</span><strong id="detailsBannerName">Level</strong></div></div>
     <div class="details-head">
       <div><div class="admin-dialog-kicker">POSSIBLE LEVEL</div><h2 class="admin-dialog-title" id="detailsTitle">Level details</h2><div class="person-sub" id="detailsCreator"></div></div>
       <button class="dialog-close" id="detailsClose" type="button" aria-label="Close level details">✕</button>
@@ -289,6 +291,7 @@
         <div class="details-video" id="detailsVideoWrap"><div class="empty">No verification video attached.</div></div>
         <div style="font-weight:900;margin-top:12px" id="detailsVideoName">Verification video</div>
         <div class="details-description" id="detailsDescription"></div>
+        <div class="detail-stats" id="detailsStats"></div>
         <div class="detail-meta" id="detailsMeta"></div>
         <div class="completion-note" id="myLevelProgress" aria-live="polite"></div>
       </div>
