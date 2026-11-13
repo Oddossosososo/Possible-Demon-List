@@ -406,7 +406,7 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
       <div class="panel" style="max-width:620px">
         <div class="kicker" style="margin-bottom:14px">POSSIBLE ACCOUNT</div>
         <div class="admin-card">
-          <div class="person-sub">Email</div>
+          <div class="person-sub">Username</div>
           <div id="accountEmail" style="font-size:18px;font-weight:900;margin-top:5px">Not signed in</div>
         </div>
         <div class="admin-card" style="margin-top:10px">
@@ -521,8 +521,8 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
     <button class="login-close" id="loginClose" aria-label="Close">×</button>
     <h2>Sign in to Possible</h2>
     <p>Use your Possible account to access account features.</p>
-    <label for="loginEmail">Email</label>
-    <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="loginUsername">Username</label>
+    <input id="loginUsername" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Your username">
     <label for="loginPassword">Password</label>
     <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
     <div class="login-actions"><button class="secondary" id="loginCancel">Cancel</button><button class="primary" id="loginSubmit">Sign In</button></div>
@@ -1163,19 +1163,22 @@ async function claimOwnerIfAvailable(s){
   return false;
 }
 async function createAccount(){
-  const email=prompt("Email for your Possible account:");
+  const username=prompt("Choose a username (3–20 letters, numbers, or underscores):")?.trim();
+  if(!username)return;
+  if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){toast("Username must be 3–20 characters using letters, numbers, or underscores.");return;}
+  const email=prompt("Email for account verification and recovery:");
   const password=prompt("Choose a password:");
   if(!email||!password)return;
-  const {data,error}=await sb.auth.signUp({email,password});
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
   if(error){toast(error.message);return}
   if(data.session){
     await claimOwnerIfAvailable(data.session);
-    toast("Account created and signed in.");
+    toast("Account created and signed in as "+username+".");
   }else{
     $("verifyPageEmail").value=email;
     $("verifyPageCode").value="";
     showView("verify");
-    $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code when your email arrives.";
+    $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code sent to your email.";
   }
   refreshAuth();
 }
@@ -1185,31 +1188,38 @@ $("createBtn").onclick=createAccount;
 function openLogin(){
   $("loginState").textContent="";
   $("loginModal").classList.add("show"); $("loginModal").setAttribute("aria-hidden","false");
-  setTimeout(()=>$("loginEmail").focus(),0);
+  setTimeout(()=>$("loginUsername").focus(),0);
 }
 function closeLogin(){ $("loginModal").classList.remove("show"); $("loginModal").setAttribute("aria-hidden","true"); }
 $("loginClose").onclick=closeLogin; $("loginCancel").onclick=closeLogin;
 $("loginModal").addEventListener("click",e=>{if(e.target.id==="loginModal")closeLogin()});
 $("loginSubmit").onclick=async()=>{
-  const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
-  if(!email||!password){$("loginState").textContent="Enter your email and password.";return;}
+  const username=$("loginUsername").value.trim(),password=$("loginPassword").value;
+  if(!username||!password){$("loginState").textContent="Enter your username and password.";return;}
+  if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){$("loginState").textContent="Enter a valid username.";return;}
   $("loginState").textContent="Signing in…"; $("loginSubmit").disabled=true;
   try{
-    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    const response=await fetch(SUPABASE_URL+"/functions/v1/username-login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",apikey:SUPABASE_PUBLISHABLE_KEY},
+      body:JSON.stringify({username,password})
+    });
+    const result=await response.json();
+    if(!response.ok||!result?.session)throw new Error(result?.error||"Invalid username or password.");
+    const {data,error}=await sb.auth.setSession({
+      access_token:result.session.access_token,
+      refresh_token:result.session.refresh_token
+    });
     if(error)throw error;
-    if(!data?.session)throw new Error("Sign-in succeeded but no session was returned. Please try again.");
     __sessionCache=data.session;
     __sessionCacheAt=Date.now();
     await claimOwnerIfAvailable(data.session);
     closeLogin();
-    toast("Signed in.");
+    toast("Signed in as "+username+".");
     await refreshAuth(true);
+    loadAccount();
   }catch(error){
-    if(/confirm|verified|verify/i.test(error?.message||"")){
-      closeLogin();openVerifyModal(email);
-    }else{
-      $("loginState").textContent=error?.message||"Unable to sign in.";
-    }
+    $("loginState").textContent=error?.message||"Unable to sign in.";
   }finally{
     $("loginSubmit").disabled=false;
   }
@@ -1786,7 +1796,12 @@ const channel=sb.channel("possible-live")
 
 async function loadAccount(){
   const s=await session();
-  $("accountEmail").textContent=s?.user?.email||"Not signed in";
+  let username=s?.user?.user_metadata?.username||"Not signed in";
+  if(s?.user?.id){
+    const {data}=await sb.from("profiles").select("username").eq("user_id",s.user.id).maybeSingle();
+    if(data?.username)username=data.username;
+  }
+  $("accountEmail").textContent=username;
   $("accountVerification").textContent=s?.user?.email_confirmed_at?"VERIFIED":"VERIFICATION PENDING";
   const isAdmin=await checkAdmin(s);
   $("accountRole").textContent=isAdmin?"OWNER / ADMIN":"USER";
