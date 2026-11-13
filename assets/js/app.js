@@ -28,10 +28,9 @@ function countryName(value){const code=countryCode(value);return code?(COUNTRY_O
 function countryOption(code){const x=COUNTRY_OPTIONS.find(v=>v.value===code);return x?x.flag+" "+x.label:"";}
 
 const $ = id => document.getElementById(id);
+const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const completionCountrySelect=$("completionCountry");
 if(completionCountrySelect){completionCountrySelect.innerHTML='<option value="">Choose your country</option>'+COUNTRY_OPTIONS.map(x=>'<option value="'+x.value+'">'+x.flag+' '+escapeHTML(x.label)+'</option>').join("");}
-
-const escapeHTML = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function normalizeCurrentWR(value){
   let s=String(value??"").trim();
   if(!s)return "";
