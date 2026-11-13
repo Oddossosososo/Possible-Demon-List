@@ -460,15 +460,25 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("levelDetailsModa
 let __communityPromise=null;
 async function loadCommunity(){
   if(__communityPromise)return __communityPromise;
-  __communityPromise=(async()=>{try{
-    const r=await fetch(API.community,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"}); const j=await r.json();
-    const creators=(j?.data?.creators||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
-    const players=(j?.data?.players||[]).slice().sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0));
-    $("creators").innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No creators yet.</div>';
-    $("players").innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No players yet.</div>';
-  }catch(e){
-    $("creators").innerHTML=$("players").innerHTML='<div class="empty">Couldn’t load community lists.</div>';
-  }} )().finally(()=>{__communityPromise=null});
+  __communityPromise=(async()=>{
+    const creatorEl=$("creators"),playerEl=$("players");
+    creatorEl.innerHTML=playerEl.innerHTML='<div class="empty">Loading leaderboards…</div>';
+    try{
+      const r=await fetch(API.community,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"});
+      const j=await r.json();
+      if(!r.ok || j?.message!=="success") throw new Error(j?.data?.error||j?.message||"Leaderboard request failed.");
+      const creators=Array.isArray(j?.data?.creators)?j.data.creators:[];
+      const players=Array.isArray(j?.data?.players)?j.data.players:[];
+      creators.sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0)||String(a.username||"").localeCompare(String(b.username||"")));
+      players.sort((a,b)=>(Number(b.points)||0)-(Number(a.points)||0)||String(a.username||"").localeCompare(String(b.username||"")));
+      creatorEl.innerHTML=creators.length?creators.map(p=>personCard(p,"Creator")).join(""):'<div class="empty">No creators have ranked levels yet.</div>';
+      playerEl.innerHTML=players.length?players.map(p=>personCard(p,"Player")).join(""):'<div class="empty">No players have approved progress or current world records yet.</div>';
+    }catch(e){
+      const message=escapeHTML(e?.message||"Couldn’t load community lists.");
+      creatorEl.innerHTML=playerEl.innerHTML='<div class="empty">Leaderboard unavailable: '+message+'</div>';
+      console.error("Leaderboard loading failed",e);
+    }
+  })().finally(()=>{__communityPromise=null});
   return __communityPromise;
 }
 function youtubeChannelAvatar(url){
