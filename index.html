@@ -247,6 +247,42 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
 .video-frame-wrap:after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:transparent}
 .video-lock-top{z-index:4}
 </style>
+
+<style id="possible-revamp-2026">
+:root{--bg:#070914;--panel:#101426;--panel2:#151b32;--accent:#8b9cff;--accent2:#c2cbff;--line:rgba(160,174,255,.14);--muted:#9aa5bf}
+body{background:radial-gradient(ellipse at 50% -18%,#303b75 0,transparent 42%),radial-gradient(ellipse at 100% 40%,#231d4b 0,transparent 35%),#070914}
+.nav{background:rgba(7,9,20,.82);border-bottom:1px solid rgba(160,174,255,.14)}
+.nav-inner{height:76px}.brand{letter-spacing:4px;text-shadow:0 0 28px #899aff35}
+.hero{padding:88px 0 48px;position:relative}
+.hero:before{content:"";position:absolute;inset:35px 12% 0;z-index:-1;background:radial-gradient(ellipse,rgba(103,122,255,.17),transparent 68%);filter:blur(18px)}
+.hero .kicker{border-color:#9aaaff38;background:#899aff12;color:#c2cbff}
+h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px #778aff20}
+.hero p{font-size:16px;color:#a8b2ca}
+.content{width:min(1120px,94%)}
+.section-head{margin:28px 2px 16px}.section-head h2{font-size:clamp(21px,3vw,27px);letter-spacing:-.7px}
+.ranking-tools{display:flex;gap:10px;margin:0 0 14px;align-items:center}
+.ranking-search{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:0 14px;border:1px solid var(--line);border-radius:15px;background:rgba(16,20,38,.8)}
+.ranking-search span{font-size:23px;color:#9caaff}.ranking-search input{border:0!important;background:transparent!important;box-shadow:none!important;padding:13px 0;min-width:0}
+.ranking-tools select{width:auto;min-width:145px}
+.cards{gap:11px}
+.level{min-height:96px;padding:15px 18px;border-radius:18px;border-color:rgba(160,174,255,.13);background:linear-gradient(105deg,rgba(22,28,51,.96),rgba(12,16,30,.98));box-shadow:0 12px 35px rgba(0,0,0,.22)}
+.level:hover{border-color:#9baaff65;box-shadow:0 16px 45px #0006,0 0 30px #788cff15}
+.level-beaten{border-color:rgba(109,224,165,.22);background:linear-gradient(105deg,rgba(16,38,39,.92),rgba(12,19,29,.98))}
+.level-beaten:hover{border-color:#6de0a56b;box-shadow:0 16px 45px #0006,0 0 28px #6de0a512}
+.rank{font-size:20px;color:#909bb9}.rank.top{color:#fff}
+.level-thumb{width:132px;height:74px;border-radius:12px}
+.level-name{font-size:17px;letter-spacing:-.2px}.level-meta{color:#9aa5bf}.level-id{color:#727e9a}
+.status{padding:8px 11px;font-size:10px;letter-spacing:.55px}
+.status-unbeaten{color:#aab5ff;background:#899aff13;border-color:#899aff35}
+.status-beaten{color:#8ce9bc;background:#6de0a510;border-color:#6de0a545}
+.panel,.person,.admin-card{border-color:var(--line);border-radius:20px}
+.primary{background:linear-gradient(135deg,#8d9cff,#6578ed);box-shadow:0 8px 28px #7487ff24}
+.secondary,.nav-btn{border-color:var(--line);background:#ffffff08}
+.empty{background:rgba(14,18,34,.6);border-color:#899aff30;color:#a0abc4}
+.footer{color:#77829e}
+@media(max-width:650px){.hero{padding-top:58px}h1{letter-spacing:-4px}.ranking-tools{align-items:stretch;flex-direction:column}.ranking-tools select{width:100%}.level{gap:10px;padding:12px}.level-thumb{width:92px;height:60px}.level-name{font-size:15px}.status{font-size:9px;padding:6px 8px}.rank{width:34px;flex-basis:34px;font-size:17px}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -292,8 +328,12 @@ input:focus,textarea:focus,select:focus{border-color:rgba(145,160,255,.5);box-sh
   <main class="content">
     <section class="view active" id="view-rankings">
       <div class="section-head">
-        <div><h2>Possible But Unbeaten</h2><p>Live from the Possible database.</p></div>
+        <div><h2>Level Rankings</h2><p>Every active level stays listed — including levels that have been beaten.</p></div>
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end"><span id="levelCount">0 levels</span></div>
+      </div>
+      <div class="ranking-tools">
+        <div class="ranking-search"><span>⌕</span><input id="levelSearch" type="search" placeholder="Search levels, creators or GD IDs…" autocomplete="off"></div>
+        <select id="levelStatusFilter" aria-label="Filter levels"><option value="all">All levels</option><option value="unbeaten">Unbeaten</option><option value="beaten">Beaten</option></select>
       </div>
       <div id="rankings" class="cards"><div class="empty">Loading Possible…</div></div>
     </section>
@@ -811,30 +851,50 @@ document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",(
 document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.viewJump)));
 
 let __levelsPromise=null;
+let __allLevels=[];
+let __levelFilter="all";
+function renderLevels(){
+  const el=$("rankings");
+  const q=String($("levelSearch")?.value||"").trim().toLowerCase();
+  const rows=__allLevels.filter(l=>{
+    const status=String(l.status||"unbeaten").toLowerCase();
+    const matchesStatus=__levelFilter==="all" || status===__levelFilter;
+    const hay=[l.name,l.creator,l.gd_level_id,l.current_wr].join(" ").toLowerCase();
+    return matchesStatus && (!q || hay.includes(q));
+  });
+  const unbeaten=__allLevels.filter(x=>x.status!=="beaten").length;
+  const beaten=__allLevels.filter(x=>x.status==="beaten").length;
+  $("levelCount").textContent=rows.length+" shown · "+unbeaten+" unbeaten · "+beaten+" beaten";
+  el.innerHTML=rows.length?rows.map((l,i)=>{
+    const beaten=l.status==="beaten";
+    const rank=l.current_rank??"—";
+    return `<article class="level ${beaten?"level-beaten":""}">
+      <div class="rank ${Number(rank)===1?"top":""}">${rank==="—"?"—":"#"+rank}</div>
+      ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
+      <div class="level-main">
+        <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
+        <div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div>
+        <div class="level-id">GD ID ${escapeHTML(l.gd_level_id??"—")}</div>
+        ${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':""}
+      </div>
+      <div class="status ${beaten?"status-beaten":"status-unbeaten"}">${beaten?"✓ BEATEN":"● UNBEATEN"}</div>
+    </article>`;
+  }).join(""):'<div class="empty">No levels match this search.</div>';
+}
 async function loadLevels(){
   if(__levelsPromise)return __levelsPromise;
   const el=$("rankings");
-  __levelsPromise=(async()=>{ el.innerHTML='<div class="empty">Loading Possible…</div>';
-  try{
-    const r=await fetch(API.levels+"?t="+Date.now(),{cache:"no-store"}); const json=await r.json();
-    if(!r.ok) throw new Error(json?.error || "Could not load levels");
-    const levels=Array.isArray(json)?json:(json.data||[]);
-    $("levelCount").textContent = levels.length + " level" + (levels.length===1?"":"s");
-    el.innerHTML = levels.length ? levels.map((l,i)=>`
-      <article class="level">
-        ${l.thumbnail_url?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':''}
-        <div class="rank ${(l.current_rank??i+1)===1?'top':''}">#${l.current_rank??i+1}</div>
-        <div class="level-main">
-          <div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div>
-          <div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div>
-          <div class="level-id">GD ID ${escapeHTML(l.gd_level_id)}</div>
-          ${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':''}
-        </div>
-        
-        </div>
-        <div class="status">UNBEATEN</div>
-      </article>`).join("") : '<div class="empty">No levels are currently on Possible.</div>';
-  }catch(e){ console.error(e); el.innerHTML='<div class="empty">Couldn’t load the Possible list.</div>'; }
+  __levelsPromise=(async()=>{el.innerHTML='<div class="empty">Loading Possible…</div>';
+    try{
+      const r=await fetch(API.levels+"?t="+Date.now(),{cache:"no-store"});
+      const json=await r.json();
+      if(!r.ok)throw new Error(json?.error||"Could not load levels");
+      __allLevels=(Array.isArray(json)?json:(json.data||[])).filter(x=>x.status!=="archived");
+      renderLevels();
+      const search=$("levelSearch"),filter=$("levelStatusFilter");
+      if(search&&!search.dataset.bound){search.dataset.bound="1";search.addEventListener("input",renderLevels);}
+      if(filter&&!filter.dataset.bound){filter.dataset.bound="1";filter.addEventListener("change",()=>{__levelFilter=filter.value;renderLevels();});}
+    }catch(e){console.error(e);el.innerHTML='<div class="empty">Couldn’t load the Possible list.</div>';}
   })().finally(()=>{__levelsPromise=null});
   return __levelsPromise;
 }
