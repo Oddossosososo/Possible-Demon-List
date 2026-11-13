@@ -390,7 +390,7 @@ function openLevelDetails(level){
   const rank=Number(level.current_rank)||0;
   const minRequirement=rank>0&&rank<=25?50:rank<=75&&rank>0?60:rank<=150&&rank>0?75:100;
   $("detailsMeta").textContent=rank>0
-    ? "Rank #"+rank+" · 100% value: "+(350*Math.exp(-0.032*(rank-1))).toFixed(2)+" points · Minimum progress: "+minRequirement+"%"
+    ? "Rank #"+rank+" · 100% value: "+(175*Math.exp(-0.032*(rank-1))).toFixed(2)+" points · Minimum progress: "+minRequirement+"%"
     : "This level needs a ranked position before it can earn points.";
   const ownProgress=__myLevelProgress.get(String(level.id));
   $("myLevelProgress").textContent=ownProgress
