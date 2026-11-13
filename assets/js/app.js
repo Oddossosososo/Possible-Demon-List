@@ -153,7 +153,7 @@ function setupVideoPlayer(id){
   const pauseButton=$("videoPause");
   if(pauseButton){pauseButton.textContent="❚❚";pauseButton.setAttribute("aria-label","Pause video")}
   const params="autoplay=1&mute=1&controls=0&disablekb=1&fs=0&rel=0&playsinline=1&modestbranding=1&enablejsapi=1&iv_load_policy=3&origin="+encodeURIComponent(location.origin);
-  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?"+params;
+  frame.src="https://www.youtube-nocookie.com/embed/"+encodeURIComponent(id)+"?"+params;
   frame.setAttribute("allow","autoplay; encrypted-media; picture-in-picture");
   if(typeof YT!=="undefined" && YT.Player){
     setTimeout(()=>{
@@ -449,7 +449,7 @@ function openLevelDetails(level){
   $("completionSubmit").disabled=false;
   const id=youtubeId(level.verification_url);
   $("detailsVideoWrap").innerHTML=id
-    ? '<iframe title="Verification video" src="https://www.youtube.com/embed/'+encodeURIComponent(id)+'?rel=0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>'
+    ? '<iframe title="Verification video" src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?rel=0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>'
     : '<div class="empty">No verification video attached.</div>';
   $("detailsVideoName").textContent=id?"Loading video title…":(level.verification_url?"Verification link":"No verification video");
   if(id){
