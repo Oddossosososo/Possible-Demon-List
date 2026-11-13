@@ -218,7 +218,25 @@
     .login-actions{display:flex;gap:8px;margin-top:16px}.login-actions button{flex:1}.login-close{float:right;border:0;background:none;color:#8993a8;font-size:22px}
 
     .nav-more #moreMenu .nav-btn.active{background:#8190ff18;border-color:#8190ff42;color:#eef0ff}
-</style>
+
+    .level{cursor:pointer}
+    .details-modal{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;padding:18px;background:#02040ae8;backdrop-filter:blur(14px)}
+    .details-modal.show{display:flex}
+    .details-shell{width:min(920px,100%);max-height:92vh;overflow:auto;border:1px solid #8190ff3d;border-radius:26px;background:linear-gradient(145deg,#151b2a,#090c13);box-shadow:0 30px 120px #000c}
+    .details-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:20px;border-bottom:1px solid #ffffff0c}
+    .details-content{padding:20px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:18px}
+    .details-video{aspect-ratio:16/9;background:#000;border:1px solid #ffffff18;border-radius:16px;overflow:hidden}
+    .details-video iframe{width:100%;height:100%;border:0}
+    .details-description{color:#aab4c7;line-height:1.65;white-space:pre-wrap;margin:12px 0}
+    .completion-panel{padding:17px;border:1px solid #8190ff35;border-radius:18px;background:#8190ff08}
+    .completion-panel h3{margin:0 0 5px}
+    .completion-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+    .completion-grid .wide{grid-column:1/-1}
+    .completion-note{font-size:12px;color:#929db2;line-height:1.5;margin-top:10px}
+    .completion-submit{width:100%;margin-top:12px}
+    .detail-meta{color:#8f9ab0;font-size:12px;line-height:1.6}
+    @media(max-width:700px){.details-content{grid-template-columns:1fr}.completion-grid{grid-template-columns:1fr}.completion-grid .wide{grid-column:auto}.details-modal{padding:8px}.details-shell{max-height:96vh}}
+  </style></style>
 <style id="possible-ultra-video-css">
 .video-modal{background:radial-gradient(circle at 50% 42%,rgba(93,112,255,.13),transparent 38%),radial-gradient(circle at 15% 85%,rgba(173,86,255,.09),transparent 30%),#010208ee;backdrop-filter:blur(22px) saturate(130%);-webkit-backdrop-filter:blur(22px) saturate(130%);padding:clamp(12px,2.5vw,32px)}
 .video-modal.show{animation:possibleVideoIn .28s cubic-bezier(.2,.8,.2,1)}
@@ -508,6 +526,7 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
           <button class="admin-menu-btn active" data-admin-tab="overview">Overview</button>
           <button class="admin-menu-btn" data-admin-tab="levels">Levels</button>
           <button class="admin-menu-btn" data-admin-tab="submissions">Submissions</button>
+          <button class="admin-menu-btn" data-admin-tab="completions">Completions</button>
           <button class="admin-menu-btn" data-admin-tab="profiles">Profiles</button>
           <button class="admin-menu-btn" data-admin-tab="creators">Creators</button>
           <button class="admin-menu-btn" data-admin-tab="players">Players</button>
@@ -577,6 +596,36 @@ h1{font-size:clamp(64px,11vw,124px);letter-spacing:-7px;text-shadow:0 12px 65px 
   </div>
 </div>
 
+<div class="details-modal" id="levelDetailsModal" aria-hidden="true">
+  <div class="details-shell" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+    <div class="details-head">
+      <div><div class="admin-dialog-kicker">POSSIBLE LEVEL</div><h2 class="admin-dialog-title" id="detailsTitle">Level details</h2><div class="person-sub" id="detailsCreator"></div></div>
+      <button class="dialog-close" id="detailsClose" type="button" aria-label="Close level details">✕</button>
+    </div>
+    <div class="details-content">
+      <div>
+        <div class="details-video" id="detailsVideoWrap"><div class="empty">No verification video attached.</div></div>
+        <div style="font-weight:900;margin-top:12px" id="detailsVideoName">Verification video</div>
+        <div class="details-description" id="detailsDescription"></div>
+        <div class="detail-meta" id="detailsMeta"></div>
+      </div>
+      <form class="completion-panel" id="completionForm">
+        <h3>Submit your progress</h3>
+        <div class="person-sub">Guests can submit too. All entries are sent for review.</div>
+        <div class="completion-grid">
+          <div><label for="completionPlayer">Player name</label><input id="completionPlayer" maxlength="40" required placeholder="Your in-game name"></div>
+          <div><label for="completionCountry">Country</label><input id="completionCountry" maxlength="60" required placeholder="e.g. Australia" list="countrySuggestions"><datalist id="countrySuggestions"><option>Australia</option><option>United States</option><option>United Kingdom</option><option>Canada</option><option>New Zealand</option></datalist></div>
+          <div><label for="completionProgress">Progress (%)</label><input id="completionProgress" type="number" min="0" max="100" step="1" required placeholder="e.g. 42"></div>
+          <div class="wide"><label for="completionVideo">Your video / proof URL (optional)</label><input id="completionVideo" type="url" placeholder="https://youtu.be/..."></div>
+        </div>
+        <div class="completion-note" id="completionRequirement">Progress entries are reviewed by the Possible team.</div>
+        <button class="primary completion-submit" id="completionSubmit" type="submit">Submit progress</button>
+        <div class="completion-note" id="completionState" role="status"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div id="verifyModal" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:#0009;padding:20px">
   <div class="panel" style="width:min(430px,100%);box-shadow:0 30px 100px #000b">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
@@ -625,7 +674,8 @@ const API = {
   community: SUPABASE_URL + "/functions/v1/community-lists",
   submissions: SUPABASE_URL + "/functions/v1/submission-api",
   staff: SUPABASE_URL + "/functions/v1/staff-api",
-  admin: SUPABASE_URL + "/functions/v1/admin-api"
+  admin: SUPABASE_URL + "/functions/v1/admin-api",
+  completions: SUPABASE_URL + "/functions/v1/completion-api"
 };
 
 const $ = id => document.getElementById(id);
@@ -920,9 +970,9 @@ function renderLevels(){
       const isBeaten=l.status==="beaten";
       const rank=i+1;
       const thumbnail=youtubeThumbnail(l.verification_url)||l.thumbnail_url||"";
-      return `<article class="level ${isBeaten?"level-beaten":""}">
+      return `<article class="level ${isBeaten?"level-beaten":""}" data-level-id="${escapeHTML(l.id)}" tabindex="0" aria-label="Open details for ${escapeHTML(l.name||"level")}">
         <div class="rank ${rank===1?"top":""}">#${rank}</div>
-        ${thumbnail?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
+        ${thumbnail?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="event.stopPropagation();watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(l.thumbnail_url)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
         <div class="level-main"><div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div><div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div><div class="level-id">GD ID ${escapeHTML(l.gd_level_id??"—")}</div>${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':""}</div>
         <div class="status ${isBeaten?"status-beaten":"status-unbeaten"}">${isBeaten?"✓ BEATEN":"● UNBEATEN"}</div>
       </article>`;
@@ -936,6 +986,18 @@ function bindRankingFilters(){
   if(difficulty&&!difficulty.dataset.bound){difficulty.dataset.bound="1";difficulty.addEventListener("change",()=>{__difficultyFilter=difficulty.value;renderLevels();});}
 }
 bindRankingFilters();
+
+$("rankings").addEventListener("click",e=>{
+  if(e.target.closest(".level-thumb"))return;
+  const card=e.target.closest(".level[data-level-id]");
+  if(card){const level=__allLevels.find(x=>String(x.id)===card.dataset.levelId);if(level)openLevelDetails(level);}
+});
+$("rankings").addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" ")return;
+  if(e.target.closest(".level-thumb"))return;
+  const card=e.target.closest(".level[data-level-id]");
+  if(card){e.preventDefault();const level=__allLevels.find(x=>String(x.id)===card.dataset.levelId);if(level)openLevelDetails(level);}
+});
 
 async function loadLevels(){
   if(__levelsPromise)return __levelsPromise;
@@ -953,6 +1015,73 @@ async function loadLevels(){
   })().finally(()=>{__levelsPromise=null});
   return __levelsPromise;
 }
+
+let activeCompletionLevel=null;
+function openLevelDetails(level){
+  activeCompletionLevel=level;
+  $("detailsTitle").textContent=level.name||"Unnamed level";
+  $("detailsCreator").textContent=(level.creator||"Unknown creator")+" · GD ID "+(level.gd_level_id??"—")+" · "+levelDifficulty(level);
+  $("detailsDescription").textContent=level.description||"No description has been added for this level yet.";
+  $("detailsMeta").textContent=level.min_progress==null?"No minimum progress requirement set for this level.":"Minimum progress required: "+level.min_progress+"%";
+  $("completionRequirement").textContent=level.min_progress==null
+    ?"No minimum progress is set. Submit your current progress for review."
+    :"This level requires at least "+level.min_progress+"% progress. The value is set by the Possible admin team.";
+  $("completionProgress").min=String(level.min_progress==null?0:Number(level.min_progress));
+  $("completionProgress").value="";
+  $("completionPlayer").value="";
+  $("completionCountry").value="";
+  $("completionVideo").value="";
+  $("completionState").textContent="";
+  $("completionSubmit").disabled=false;
+  const id=youtubeId(level.verification_url);
+  $("detailsVideoWrap").innerHTML=id
+    ? '<iframe title="Verification video" src="https://www.youtube.com/embed/'+encodeURIComponent(id)+'?rel=0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>'
+    : '<div class="empty">No verification video attached.</div>';
+  $("detailsVideoName").textContent=id?"Loading video title…":(level.verification_url?"Verification link":"No verification video");
+  if(id){
+    fetch("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent(level.verification_url))
+      .then(r=>r.ok?r.json():null).then(j=>{
+        if(activeCompletionLevel?.id===level.id)$("detailsVideoName").textContent=j?.title||"Watch verification video";
+      }).catch(()=>{if(activeCompletionLevel?.id===level.id)$("detailsVideoName").textContent="Watch verification video";});
+  }
+  $("levelDetailsModal").classList.add("show");
+  $("levelDetailsModal").setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+}
+function closeLevelDetails(){
+  activeCompletionLevel=null;
+  $("levelDetailsModal").classList.remove("show");
+  $("levelDetailsModal").setAttribute("aria-hidden","true");
+  $("detailsVideoWrap").innerHTML='<div class="empty">No verification video attached.</div>';
+  document.body.style.overflow="";
+}
+$("detailsClose").onclick=closeLevelDetails;
+$("levelDetailsModal").addEventListener("click",e=>{if(e.target.id==="levelDetailsModal")closeLevelDetails();});
+$("completionForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const level=activeCompletionLevel;
+  if(!level)return;
+  const player_name=$("completionPlayer").value.trim();
+  const country=$("completionCountry").value.trim();
+  const progress=Number($("completionProgress").value);
+  const video_url=$("completionVideo").value.trim();
+  if(!player_name||!country||!Number.isInteger(progress)||progress<0||progress>100){$("completionState").textContent="Enter a player name, country and whole-number progress from 0 to 100.";return;}
+  if(level.min_progress!=null&&progress<Number(level.min_progress)){$("completionState").textContent="This level requires at least "+level.min_progress+"% progress.";return;}
+  $("completionSubmit").disabled=true;
+  $("completionState").textContent="Submitting…";
+  try{
+    const current=await session();
+    const headers={"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY};
+    if(current?.access_token)headers.Authorization="Bearer "+current.access_token;
+    const response=await fetch(API.completions,{method:"POST",headers,body:JSON.stringify({level_id:level.id,player_name,country,progress,video_url})});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||"Could not submit progress.");
+    $("completionState").textContent="Submitted! Your progress is waiting for review.";
+    $("completionForm").reset();
+  }catch(error){$("completionState").textContent=error.message||"Submission failed.";}
+  finally{$("completionSubmit").disabled=false;}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("levelDetailsModal")?.classList.contains("show"))closeLevelDetails();});
 
 let __communityPromise=null;
 async function loadCommunity(){
@@ -1516,6 +1645,7 @@ function renderAdminTab(){
       <div class="admin-stat-grid">
         <div class="admin-stat"><div class="person-sub">LEVELS</div><b>${d.levels?.length||0}</b></div>
         <div class="admin-stat"><div class="person-sub">SUBMISSIONS</div><b>${d.submissions?.length||0}</b></div>
+        <div class="admin-stat"><div class="person-sub">COMPLETIONS</div><b>${d.completions?.length||0}</b></div>
         <div class="admin-stat"><div class="person-sub">PROFILES</div><b>${d.profiles?.length||0}</b></div>
         <div class="admin-stat"><div class="person-sub">CHANGES</div><b>${d.changes?.length||0}</b></div>
       </div>
@@ -1527,6 +1657,7 @@ function renderAdminTab(){
         <div class="form-actions" style="margin-top:16px">
           <button class="mini" onclick="adminOpenTab('levels')">Manage Levels</button>
           <button class="mini" onclick="adminOpenTab('submissions')">Review Submissions</button>
+          <button class="mini" onclick="adminOpenTab('completions')">Review Completions</button>
           <button class="mini" onclick="adminOpenTab('profiles')">Moderate Profiles</button>
         </div>
       </div>`;
@@ -1574,6 +1705,23 @@ function renderAdminTab(){
           <div><b>${escapeHTML(x.level_name)}</b><div class="person-sub">${escapeHTML(x.creator)} · ${escapeHTML(x.status)}</div></div>
           <div class="mini-actions"><button class="mini success" onclick="reviewSubmission('${x.id}','approved')">Approve</button><button class="mini danger" onclick="reviewSubmission('${x.id}','rejected')">Reject</button></div>
         </div>`).join("")||'<div class="empty">No submissions.</div>'}
+      </div>`;
+    return;
+  }
+
+  if(adminState.tab==="completions"){
+    box.innerHTML=`
+      <div class="panel"><h3 style="margin-top:0">Progress & Completion Review</h3>
+      <div class="person-sub">Guest and account submissions appear here for approval.</div>
+      ${(d.completions||[]).slice(0,200).map(x=>`
+        <div class="admin-row">
+          <div style="min-width:0">
+            <b>${escapeHTML(x.player_name)} · ${escapeHTML(x.progress)}%</b>
+            <div class="person-sub">${escapeHTML(x.levels?.name||"Level")} · ${escapeHTML(x.country)} · ${escapeHTML(x.status)} · ${fmtTime(x.created_at)}</div>
+            ${x.video_url?'<a href="'+escapeHTML(x.video_url)+'" target="_blank" rel="noopener" class="person-sub">Open proof video</a>':""}
+          </div>
+          <div class="mini-actions"><button class="mini success" onclick="reviewCompletion('${x.id}','approved')">Approve</button><button class="mini danger" onclick="reviewCompletion('${x.id}','rejected')">Reject</button></div>
+        </div>`).join("")||'<div class="empty">No progress submissions yet.</div>'}
       </div>`;
     return;
   }
@@ -1698,6 +1846,11 @@ async function loadAdmin(){
   adminTabButtons();
   renderAdminTab();
 }
+
+window.reviewCompletion=async(id,status)=>{
+  const j=await adminPost({action:"review_completion",id,status});
+  if(j){toast("Progress submission "+status+".");adminState.data=null;loadAdmin();}
+};
 
 window.reviewSubmission=async(id,status)=>{
   const j=await adminPost({action:"review_submission",id,status});
@@ -1840,6 +1993,7 @@ window.editLevel=async(id)=>{
       {key:"current_wr",label:"Current WR",value:x.current_wr||"",normalize:"percent"},
       {key:"difficulty",label:"Geometry Dash difficulty",type:"select",value:levelDifficulty(x),options:GD_DIFFICULTIES.map(v=>({value:v,label:v}))},
       {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",value:Number(x.difficulty_points)||0},
+      {key:"min_progress",label:"Minimum progress (%) — optional",type:"number",value:x.min_progress??"",placeholder:"Leave blank for no minimum",min:0,max:100},
       {key:"description",label:"Description",type:"textarea",value:x.description||"",wide:true},
       {key:"verification_url",label:"YouTube / Verification URL",value:x.verification_url||""},
       {key:"notes",label:"Admin notes",type:"textarea",value:x.notes||"",wide:true}
@@ -1852,7 +2006,7 @@ window.editLevel=async(id)=>{
   }
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j2=await adminPost({
-    action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,difficulty:result.difficulty||"Extreme Demon",
+    action:"update_level",id,name:result.name.trim(),creator:result.creator.trim(),gd_level_id:gd,difficulty:result.difficulty||"Extreme Demon",min_progress:result.min_progress===""?null:Number(result.min_progress),
     current_wr:normalizeCurrentWR(result.current_wr),
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:autoThumb||"",notes:result.notes||""
@@ -1870,6 +2024,7 @@ window.createLevel=async()=>{
       {key:"current_wr",label:"Current WR",placeholder:"Player name / record",normalize:"percent"},
       {key:"difficulty",label:"Geometry Dash difficulty",type:"select",value:"Extreme Demon",options:GD_DIFFICULTIES.map(v=>({value:v,label:v}))},
       {key:"difficulty_points",label:"Difficulty points (0–3)",type:"number",placeholder:"0 to 3"},
+      {key:"min_progress",label:"Minimum progress (%) — optional",type:"number",placeholder:"Leave blank for no minimum",min:0,max:100},
       {key:"name",label:"Level name",placeholder:"Level name"},
       {key:"creator",label:"Creator",placeholder:"Creator"},
       {key:"verification_url",label:"YouTube / Verification URL",placeholder:"https://youtube.com/watch?v=...",wide:true},
@@ -1894,7 +2049,7 @@ window.createLevel=async()=>{
   }
   const autoThumb=youtubeThumbnail(result.verification_url);
   const j=await adminPost({
-    action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),difficulty:result.difficulty||"Extreme Demon",
+    action:"create_level",gd_level_id:gd,name:result.name.trim(),creator:result.creator.trim(),difficulty:result.difficulty||"Extreme Demon",min_progress:result.min_progress===""?null:Number(result.min_progress),
     current_wr:normalizeCurrentWR(result.current_wr),
     description:result.description||"",verification_url:result.verification_url||"",
     thumbnail_url:autoThumb,notes:result.notes||""
