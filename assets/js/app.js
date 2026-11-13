@@ -355,6 +355,21 @@ function levelDifficulty(level){
 }
 function renderLevels(){
   const el=$("rankings");
+  const featuredBanner=$("featuredLevelBanner");
+  if(featuredBanner){
+    const featured=[...__allLevels].filter(x=>x.status!=="archived").sort((a,b)=>Number(a.current_rank||999999)-Number(b.current_rank||999999))[0];
+    if(featured){
+      const image=youtubeThumbnail(featured.verification_url)||featured.thumbnail_url||"";
+      const featuredRank=Number(featured.current_rank)||1;
+      featuredBanner.hidden=false;
+      featuredBanner.innerHTML=`<button class="featured-level-inner" type="button" data-featured-level-id="${escapeHTML(featured.id)}">
+        ${image?'<img class="featured-level-image" src="'+escapeHTML(image)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div class="featured-level-image featured-level-placeholder"></div>'}
+        <span class="featured-level-shade"></span>
+        <span class="featured-level-copy"><span class="featured-eyebrow">CURRENT #1 · FEATURED LEVEL</span><strong>${escapeHTML(featured.name||"Unnamed level")}</strong><span>by ${escapeHTML(featured.creator||"Unknown creator")} · ${escapeHTML(levelDifficulty(featured))}</span><span class="featured-cta">VIEW LEVEL PROFILE <b>↗</b></span></span>
+        <span class="featured-rank">#${featuredRank}</span>
+      </button>`;
+    }else{featuredBanner.hidden=true;featuredBanner.innerHTML="";}
+  }
   const q=String($("levelSearch")?.value||"").trim().toLowerCase();
   // Read the live controls on every render so filtering never depends on
   // whether the data request finished before the user changed a selector.
@@ -396,6 +411,12 @@ function bindRankingFilters(){
 }
 bindRankingFilters();
 
+$("featuredLevelBanner")?.addEventListener("click",e=>{
+  const button=e.target.closest("[data-featured-level-id]");
+  if(!button)return;
+  const level=__allLevels.find(x=>String(x.id)===button.dataset.featuredLevelId);
+  if(level)openLevelDetails(level);
+});
 $("rankings").addEventListener("click",e=>{
   if(e.target.closest(".level-thumb"))return;
   const card=e.target.closest(".level[data-level-id]");
@@ -429,6 +450,11 @@ async function loadLevels(){
 let activeCompletionLevel=null;
 function openLevelDetails(level){
   activeCompletionLevel=level;
+  const detailImage=youtubeThumbnail(level.verification_url)||level.thumbnail_url||"";
+  const bannerImage=$("detailsBannerImage");
+  if(bannerImage){bannerImage.src=detailImage;bannerImage.alt=(level.name||"Level")+" level banner";bannerImage.style.display=detailImage?"block":"none";}
+  $("detailsBannerName").textContent=level.name||"Unnamed level";
+  $("detailsBannerRank").textContent=Number(level.current_rank)>0?"RANK #"+Number(level.current_rank):"UNRANKED";
   $("detailsTitle").textContent=level.name||"Unnamed level";
   $("detailsCreator").textContent=(level.creator||"Unknown creator")+" · GD ID "+(level.gd_level_id??"—")+" · "+levelDifficulty(level);
   $("detailsDescription").textContent=level.description||"No description has been added for this level yet.";
@@ -437,6 +463,12 @@ function openLevelDetails(level){
   $("detailsMeta").textContent=rank>0
     ? "Rank #"+rank+" · 100% value: "+getMaxPoints(rank,levelDifficulty(level)).toFixed(2)+" points · Minimum progress: "+minRequirement+"%"
     : "This level needs a ranked position before it can earn points.";
+  $("detailsStats").innerHTML=`
+    <div class="detail-stat"><span>LIST POSITION</span><strong>${rank>0?"#"+rank:"—"}</strong></div>
+    <div class="detail-stat"><span>DIFFICULTY</span><strong>${escapeHTML(levelDifficulty(level))}</strong></div>
+    <div class="detail-stat"><span>GD LEVEL ID</span><strong>${escapeHTML(level.gd_level_id??"—")}</strong></div>
+    <div class="detail-stat"><span>MINIMUM PROGRESS</span><strong>${escapeHTML(level.min_progress!=null?level.min_progress+"%":minRequirement+"%")}</strong></div>
+    <div class="detail-stat detail-stat-wide"><span>CURRENT WORLD RECORD</span><strong>${escapeHTML(level.current_wr||"Not listed")}</strong></div>`;
   const ownProgress=__myLevelProgress.get(String(level.id));
   $("myLevelProgress").textContent=ownProgress
     ? (Number(ownProgress.progress)===100?"✓ You have beaten this level. ":"Your best approved progress: "+ownProgress.progress+"%. ")+
