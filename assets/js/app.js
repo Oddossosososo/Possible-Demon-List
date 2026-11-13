@@ -323,9 +323,13 @@ async function loadMyProgress(){
 }
 let __levelFilter="all";
 let __difficultyFilter="all";
-const GD_DIFFICULTIES=["Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon"];
+const GD_DIFFICULTIES=["Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Grandpa Demon","Impossible Demon","Death Demon","WHY Demon"];
 const DIFFICULTY_POINT_MULTIPLIERS={
   "extreme demon":1.0,
+  "grandpa demon":1.5,
+  "impossible demon":1.9,
+  "death demon":1.0,
+  "why demon":1.0,
   "insane demon":0.7,
   "hard demon":0.6,
   "medium demon":0.6,
