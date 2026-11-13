@@ -340,6 +340,29 @@
   </div>
 </div>
 
+
+<div class="login-modal" id="signupModal" aria-hidden="true">
+  <form class="login-box signup-box" id="signupForm">
+    <button type="button" class="login-close" id="signupClose" aria-label="Close">×</button>
+    <div class="signup-kicker">JOIN THE COMMUNITY</div>
+    <h2>Create your Possible account</h2>
+    <p>Track your progress, submit completions and join the Possible community.</p>
+    <label for="signupUsername">Username</label>
+    <input id="signupUsername" name="username" type="text" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="e.g. Player_123" required>
+    <div class="signup-hint">3–20 characters · letters, numbers and underscores</div>
+    <label for="signupEmail">Email address</label>
+    <input id="signupEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+    <label for="signupPassword">Password</label>
+    <input id="signupPassword" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required>
+    <label for="signupPasswordConfirm">Confirm password</label>
+    <input id="signupPasswordConfirm" name="passwordConfirm" type="password" minlength="8" autocomplete="new-password" placeholder="Enter your password again" required>
+    <div class="signup-note">Email verification may be required before you can sign in.</div>
+    <div class="login-actions"><button type="button" class="secondary" id="signupCancel">Cancel</button><button type="submit" class="primary" id="signupSubmit">Create Account</button></div>
+    <div id="signupState" class="muted" role="status" aria-live="polite"></div>
+    <button type="button" class="signup-switch" id="signupToLogin">Already have an account? Sign in</button>
+  </form>
+</div>
+
 <script src="./assets/js/app.js" defer></script>
 </body>
 </html>
