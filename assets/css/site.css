@@ -545,3 +545,41 @@ body{
   .level{min-height:112px;gap:9px;padding:9px}
   .level-thumb{width:88px;height:88px;flex-basis:88px;border-radius:12px}
 }
+
+
+/* Final card layout repair: remove the old ellipse mask that clipped card edges. */
+.cards{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;width:100%;min-width:0}
+.level{
+  display:flex!important;
+  align-items:center;
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+  clip-path:none!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
+  border-radius:18px;
+}
+.level>.rank{flex:0 0 42px;width:42px;min-width:0}
+.level>.level-thumb{flex:0 0 clamp(88px,15vw,176px);width:clamp(88px,15vw,176px);min-width:0}
+.level>.level-main{flex:1 1 0;min-width:0;overflow:hidden}
+.level .level-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.level .level-meta,.level .level-id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.level>.status{flex:0 0 auto;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.level-card-background{display:none!important}
+.level::before{content:none!important}
+@media(max-width:700px){
+  .level{min-height:124px}
+  .level>.rank{flex-basis:32px;width:32px}
+  .level>.level-thumb{flex-basis:104px;width:104px;height:104px}
+  .level>.status{display:none}
+}
+@media(max-width:420px){
+  .level{min-height:108px;gap:8px;padding:9px}
+  .level>.rank{flex-basis:26px;width:26px;font-size:15px}
+  .level>.level-thumb{flex-basis:88px;width:88px;height:88px}
+  .level-name{font-size:14px}
+  .level-meta{font-size:11px}
+  .level-id{font-size:9px}
+}
