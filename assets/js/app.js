@@ -716,11 +716,12 @@ async function checkAdmin(s){
   if(!s) return false;
   if(s.user?.email === "lennylion444@gmail.com") return true;
   try{
-    const [{data:staff,error:staffError},{data:admin,error:adminError}]=await Promise.all([
-      sb.from("staff_members").select("role,active").eq("user_id",s.user.id).eq("active",true).maybeSingle(),
-      sb.from("admins").select("role,active").eq("user_id",s.user.id).eq("active",true).maybeSingle()
-    ]);
-    return (!staffError&&!!staff&&["owner","admin"].includes(staff.role))||(!adminError&&!!admin);
+    const response=await fetch(API.admin+"?access-check="+Date.now(),{
+      method:"GET",
+      headers:{Authorization:"Bearer "+s.access_token},
+      cache:"no-store"
+    });
+    return response.ok;
   }catch(e){
     return false;
   }
