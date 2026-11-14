@@ -123,104 +123,40 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
-let videoPlayer=null,videoTicker=null,videoPendingId="",videoStarted=false,videoCutoff=0,videoPaused=false,videoPauseTime=0;
-
 function setupVideoPlayer(id){
   const frame=$("videoFrame");
   if(!frame || !id)return;
-  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?autoplay=0&controls=1&rel=0&playsinline=1&enablejsapi=1";
+  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?autoplay=0&controls=1&rel=0&playsinline=1";
 }
 
 function watchLevelVideo(url,title,levelName){
   const id=youtubeId(url);
-  if(!id){toast("No YouTube video is attached to this level.");return}
-  videoCutoff=0;
-  $("videoTitle").textContent=title||"Level video";
-  $("videoSeek").value=0;
-  $("videoTime").textContent="0:00 / 0:00";
-  $("videoStartHint").classList.add("hidden");
-  $("videoModal").classList.add("show");
-  $("videoModal").setAttribute("aria-hidden","false");
+  if(!id){toast("No YouTube video is attached to this level.");return;}
+  const modal=$("videoModal");
+  const titleEl=$("videoTitle");
+  if(!modal)return;
+  if(titleEl)titleEl.textContent=title||"Level video";
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
   setupVideoPlayer(id);
 }
-function freezeVideoFrame(){
-  if(!videoPlayer || typeof videoPlayer.getCurrentTime!=="function")return;
-  try{videoPauseTime=Number(videoPlayer.getCurrentTime())||0;videoPaused=true;videoPlayer.pauseVideo();requestAnimationFrame(()=>{try{videoPlayer.seekTo(videoPauseTime,true)}catch{}})}catch{}
-}
+
 function closeVideo(){
-  clearInterval(videoTicker);
-  videoTicker=null;
-  if(videoPlayer){
-    try{videoPlayer.stopVideo()}catch{}
-    try{videoPlayer.destroy()}catch{}
-  }
-  videoPlayer=null;
-  videoPendingId="";
-  videoCutoff=0;
-  videoPaused=false;
-  videoPauseTime=0;
   const frame=$("videoFrame");
-  if(frame){
-    frame.src="about:blank";
+  if(frame)frame.src="about:blank";
+  const modal=$("videoModal");
+  if(modal){
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden","true");
   }
-  $("videoSeek").value=0;
-  $("videoTime").textContent="0:00 / 0:00";
-  $("videoStartHint")?.classList.remove("hidden");
-  $("videoModal").classList.remove("show");
-  $("videoModal").setAttribute("aria-hidden","true");
   document.body.style.overflow="";
 }
-window.onYouTubeIframeAPIReady=()=>{};
-const videoWrap=$("videoFrame")?.parentElement;
-if(videoWrap){
-  
-}
-$("videoSeek").addEventListener("input",e=>{
-  if(videoPlayer && typeof videoPlayer.seekTo==="function"){
-    const limit=videoCutoff>0 ? videoCutoff : Number(e.target.max)||0;
-    videoPlayer.seekTo(Math.min(Number(e.target.value)||0,limit),true);
-    updateVideoSeek();
-  }
-});
-document.querySelectorAll(".video-lock").forEach(el=>{
-  const block=e=>{e.preventDefault();e.stopPropagation()};
-  el.addEventListener("pointerdown",block);
-  el.addEventListener("click",block);
-  el.addEventListener("contextmenu",block);
-});
+
 const videoCloseButton=$("videoClose");
-if(videoCloseButton){
-  const closeNow=e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    closeVideo();
-  };
-  videoCloseButton.onclick=closeVideo;
-  videoCloseButton.addEventListener("pointerup",closeNow,{capture:true});
-  videoCloseButton.addEventListener("touchend",closeNow,{capture:true});
-}
-const videoPauseButton=$("videoPause");
-if(videoPauseButton){
-  videoPauseButton.onclick=()=>{
-    if(!videoPlayer)return;
-    try{
-      const state=videoPlayer.getPlayerState();
-      if(state===YT.PlayerState.PLAYING){
-        freezeVideoFrame();
-        videoPauseButton.textContent="▶";
-        videoPauseButton.setAttribute("aria-label","Play video");
-      }else{
-        videoPaused=false;
-        videoPlayer.unMute();
-        videoPlayer.setVolume(100);
-        videoPlayer.playVideo();
-        videoPauseButton.textContent="❚❚";
-        videoPauseButton.setAttribute("aria-label","Pause video");
-      }
-    }catch{}
-  };
-}
-$("videoModal").addEventListener("click",e=>{if(e.target.id==="videoModal")closeVideo()});
+if(videoCloseButton)videoCloseButton.onclick=closeVideo;
+const videoModal=$("videoModal");
+if(videoModal)videoModal.addEventListener("click",e=>{if(e.target===videoModal)closeVideo()});
 
 async function showView(name){
   if(name==="admin"){
