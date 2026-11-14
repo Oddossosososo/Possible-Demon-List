@@ -351,8 +351,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
 /* Keep all dialog layers inert and invisible until their matching open state is set. */
 #adminDialog[aria-hidden="true"],#videoModal[aria-hidden="true"],#levelDetailsModal[aria-hidden="true"],#loginModal[aria-hidden="true"],#signupModal[aria-hidden="true"]{display:none!important}
 #adminNav{display:none!important}#adminNav.show{display:block!important}
-/* The Possible player controls playback itself; prevent YouTube hover UI from ever activating. */
-.video-frame-wrap iframe{pointer-events:none!important}
+/* Keep the YouTube player clickable, including its Skip Ad control. */
+.video-frame-wrap iframe{pointer-events:auto!important}
 
 
 /* POSSIBLE 2026 — full visual refresh */
