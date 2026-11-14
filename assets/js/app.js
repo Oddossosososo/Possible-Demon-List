@@ -716,12 +716,11 @@ async function checkAdmin(s){
   if(!s) return false;
   if(s.user?.email === "lennylion444@gmail.com") return true;
   try{
-    const {data:staff,error}=await sb.from("staff_members")
-      .select("role,active")
-      .eq("user_id",s.user.id)
-      .eq("active",true)
-      .maybeSingle();
-    return !error && !!staff && ["owner","admin"].includes(staff.role);
+    const [{data:staff,error:staffError},{data:admin,error:adminError}]=await Promise.all([
+      sb.from("staff_members").select("role,active").eq("user_id",s.user.id).eq("active",true).maybeSingle(),
+      sb.from("admins").select("role,active").eq("user_id",s.user.id).eq("active",true).maybeSingle()
+    ]);
+    return (!staffError&&!!staff&&["owner","admin"].includes(staff.role))||(!adminError&&!!admin);
   }catch(e){
     return false;
   }
@@ -984,6 +983,64 @@ async function renderStaffAdminTab(tab){
     box.innerHTML=`<div class="panel"><h3 style="margin-top:0">Staff History</h3>${d.map(a=>`<div class="admin-row"><div><b>${escapeHTML(a.action||"Action")}</b><div class="person-sub">Target ${escapeHTML(a.target_user_id||"—")} · Actor ${escapeHTML(a.actor_user_id||"—")}</div></div><div class="person-sub">${new Date(a.created_at).toLocaleString()}</div></div>`).join("")||'<div class="empty">No staff actions recorded.</div>'}</div>`;
   }
 }
+async function renderAdminAccessTab(){
+  const box=$("adminContent");
+  const d=adminState.data||{};
+  if(d.admin?.role!=="owner"){
+    box.innerHTML='<div class="empty">Only the Possible owner can manage administrator access.</div>';
+    return;
+  }
+  const profiles=new Map((d.profiles||[]).map(p=>[p.user_id,p.username]));
+  const admins=(d.admins||[]).filter(a=>a.active);
+  box.innerHTML=`
+    <div class="panel">
+      <h3 style="margin-top:0">Grant Administrator Access</h3>
+      <p class="muted">Enter an existing Possible username. The user does not need to be logged in. They must already have created an account.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+        <div style="flex:1;min-width:200px"><label for="adminGrantUsername">Possible username</label><input id="adminGrantUsername" maxlength="20" placeholder="Username" autocomplete="off"></div>
+        <button class="primary" id="adminGrantButton" type="button">Grant Admin</button>
+      </div>
+      <div id="adminGrantState" class="muted" style="margin-top:10px" aria-live="polite"></div>
+    </div>
+    <div class="panel" style="margin-top:12px">
+      <h3 style="margin-top:0">Administrator Access</h3>
+      <p class="muted">${admins.length} active administrator${admins.length===1?"":"s"}.</p>
+      ${admins.map(a=>{
+        const name=profiles.get(a.user_id)||"Account";
+        return `<div class="admin-row">
+          <div><b>${escapeHTML(name)}</b><div class="person-sub">${escapeHTML(a.role)} · ${escapeHTML(a.user_id)}</div></div>
+          <div class="mini-actions"><button class="mini danger" onclick="setAdminAccess('${escapeHTML(a.user_id)}',false)">Remove Admin</button></div>
+        </div>`;
+      }).join("")||'<div class="empty">No active admin grants.</div>'}
+    </div>`;
+  $("adminGrantButton").onclick=async()=>{
+    const input=$("adminGrantUsername");
+    const state=$("adminGrantState");
+    const username=input.value.trim();
+    if(!/^[A-Za-z0-9_]{3,20}$/.test(username)){state.textContent="Enter a valid username (3–20 letters, numbers or underscores).";return;}
+    $("adminGrantButton").disabled=true;
+    state.textContent="Applying admin access…";
+    const result=await adminPost({action:"set_admin",username,active:true});
+    $("adminGrantButton").disabled=false;
+    if(result){
+      toast("Admin access granted to "+username+".");
+      adminState.data=null;
+      await loadAdmin();
+      adminOpenTab("admin-access");
+    }else state.textContent="Could not grant admin access. Check the message above.";
+  };
+}
+window.setAdminAccess=async(userId,active)=>{
+  if(!confirm("Remove administrator access from this account?"))return;
+  const result=await adminPost({action:"set_admin",user_id:userId,active});
+  if(result){
+    toast("Administrator access removed.");
+    adminState.data=null;
+    await loadAdmin();
+    adminOpenTab("admin-access");
+  }
+};
+
 function renderAdminTab(){
   const d=adminState.data||{};
   const box=$("adminContent");
@@ -1013,6 +1070,9 @@ function renderAdminTab(){
     return;
   }
 
+  if(adminState.tab==="admin-access"){
+    renderAdminAccessTab(); return;
+  }
   if(["staff-applications","staff-management","staff-actions"].includes(adminState.tab)){
     renderStaffAdminTab(adminState.tab); return;
   }
@@ -1192,6 +1252,8 @@ async function loadAdmin(){
   const j=await r.json();
   if(!r.ok){box.innerHTML='<div class="empty">Admin access required.</div>';return}
   adminState.data=j.data||{};
+  const adminAccessTab=$("adminAccessTab");
+  if(adminAccessTab) adminAccessTab.style.display=adminState.data.admin?.role==="owner"?"block":"none";
   adminTabButtons();
   renderAdminTab();
 }
