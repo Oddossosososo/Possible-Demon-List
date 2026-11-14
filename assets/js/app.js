@@ -708,11 +708,6 @@ async function refreshAuth(force=false){
   if(seq!==__authRefreshSeq)return;
   $("authBtn").textContent=s?"Sign Out":"Sign In";
   $("staffApplication").style.display=s?"block":"none";
-  if(s?.user?.email) $("verifyPageEmail").value=s.user.email;
-  const pending=!!s && !s.user.email_confirmed_at;
-  $("verifyBadge").style.display=pending?"inline-flex":"none";
-  $("verifyBadge").textContent=pending?"VERIFICATION PENDING":"VERIFIED";
-  if(pending) $("verifyBadge").style.cssText="margin:0;display:inline-flex;color:#ffd36d;border-color:#ffd36d33;background:#ffd36d08";
   const admin=s ? await checkAdmin(s) : false;
   if(seq!==__authRefreshSeq)return;
   $("adminNav").classList.toggle("show",admin);
@@ -731,65 +726,6 @@ async function checkAdmin(s){
     return false;
   }
 }
-function openVerifyModal(email){
-  $("verifyEmail").textContent=email||"your email";
-  $("verifyState").textContent="";
-  $("verifyModalCode").value="";
-  $("verifyModal").style.display="flex";
-}
-function closeVerifyModal(){ $("verifyModal").style.display="none"; }
-
-async function verifyCode(email,token,stateEl){
-  if(!email || !/^\d{6}$/.test(token)){
-    stateEl.textContent="Enter the 6-digit code from your email.";
-    return false;
-  }
-  stateEl.textContent="Checking code…";
-  const {data,error}=await sb.auth.verifyOtp({email,token,type:"email"});
-  if(error){
-    stateEl.textContent=error.message;
-    return false;
-  }
-  closeVerifyModal();
-  toast("Email verified. Welcome to Possible!");
-
-  refreshAuth();
-  return true;
-}
-async function checkEmailVerified(){
-  const {data:{user}}=await sb.auth.getUser();
-  if(user?.email_confirmed_at){
-    closeVerifyModal();
-    toast("Email verified. Welcome to Possible!");
-
-    refreshAuth();
-    return true;
-  }
-  return false;
-}
-async function resendVerification(){
-  const email=$("verifyEmail").textContent;
-  if(!email || email==="your email") return;
-  const {error}=await sb.auth.resend({type:"signup",email});
-  $("verifyState").textContent=error ? error.message : "New verification code sent.";
-}
-$("closeVerify").onclick=closeVerifyModal;
-$("resendVerify").onclick=resendVerification;
-$("checkVerify").onclick=async()=>{
-  await verifyCode($("verifyEmail").textContent,$("verifyModalCode").value.trim(),$("verifyState"));
-};
-
-$("verifyPageSend").onclick=async()=>{
-  const email=$("verifyPageEmail").value.trim();
-  if(!email){$("verifyPageState").textContent="Enter your email first.";return;}
-  const {error}=await sb.auth.resend({type:"signup",email});
-  $("verifyPageState").textContent=error?error.message:"Verification code sent. Check your inbox.";
-};
-$("verifyPageCheck").onclick=async()=>{
-  const email=$("verifyPageEmail").value.trim();
-  await verifyCode(email,$("verifyPageCode").value.trim(),$("verifyPageState"));
-};
-
 function createAccount(){
   $("signupState").textContent="";
   $("signupForm").reset();
@@ -809,7 +745,6 @@ $("signupModal").addEventListener("click",e=>{if(e.target.id==="signupModal")clo
 $("signupForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const username=$("signupUsername").value.trim();
-  const email=$("signupEmail").value.trim();
   const password=$("signupPassword").value;
   const confirmPassword=$("signupPasswordConfirm").value;
   const state=$("signupState");
@@ -819,18 +754,21 @@ $("signupForm").addEventListener("submit",async e=>{
   $("signupSubmit").disabled=true;
   state.textContent="Creating your account…";
   try{
-    const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
+    const response=await fetch(SUPABASE_URL+"/functions/v1/username-signup",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",apikey:SUPABASE_PUBLISHABLE_KEY},
+      body:JSON.stringify({username,password})
+    });
+    const result=await response.json();
+    if(!response.ok||!result?.session)throw new Error(result?.error||"Account creation failed. Please try again.");
+    const {data,error}=await sb.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
     if(error)throw error;
+    __sessionCache=data.session;
+    __sessionCacheAt=Date.now();
     closeSignup();
-    if(data.session){
-      toast("Account created and signed in as "+username+".");
-    }else{
-      $("verifyPageEmail").value=email;
-      $("verifyPageCode").value="";
-      showView("verify");
-      $("verifyPageState").textContent="VERIFICATION PENDING — enter the 6-digit code sent to your email.";
-    }
+    toast("Account created and signed in as "+username+".");
     await refreshAuth(true);
+    loadAccount();
   }catch(error){
     state.textContent=error?.message||"Account creation failed. Please try again.";
   }finally{
@@ -1485,13 +1423,12 @@ async function loadAccount(){
     if(data?.username)username=data.username;
   }
   $("accountEmail").textContent=username;
-  $("accountVerification").textContent=s?.user?.email_confirmed_at?"VERIFIED":"VERIFICATION PENDING";
   const isAdmin=await checkAdmin(s);
   $("accountRole").textContent=isAdmin?"OWNER / ADMIN":"USER";
 }
 
 const startHash=(location.hash||"#rankings").slice(1);
-const initialView=["rankings","creators","players","changes","time-machine","submit","staff","verify","account","admin"].includes(startHash)?startHash:"rankings";
+const initialView=["rankings","creators","players","changes","time-machine","submit","staff","account","admin"].includes(startHash)?startHash:"rankings";
 showView(initialView);
 // Hydrate off-screen sections too, so visitors never see permanent loading placeholders when opening them later.
 loadCommunity();
