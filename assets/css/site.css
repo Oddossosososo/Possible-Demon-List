@@ -492,3 +492,18 @@ body{
 }
 .level-thumb img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
 @media(max-width:560px){.level-thumb{width:86px;height:58px}}
+
+
+/* Show the complete level artwork behind each card without cropping it. */
+.level{position:relative;isolation:isolate;overflow:hidden;background:#080d18}
+.level-card-background{
+  display:block!important;position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;object-position:center;background:#080d18;
+  opacity:.48;z-index:0;pointer-events:none;
+}
+.level::before{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,rgba(7,10,19,.78),rgba(7,10,19,.58) 58%,rgba(7,10,19,.72));
+}
+.level>*:not(.level-card-background){position:relative;z-index:2}
+.level-thumb{position:relative;z-index:3}
