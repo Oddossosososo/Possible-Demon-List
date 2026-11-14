@@ -507,3 +507,41 @@ body{
 }
 .level>*:not(.level-card-background){position:relative;z-index:2}
 .level-thumb{position:relative;z-index:3}
+
+
+/* Larger square level artwork, sized responsively instead of squeezed into an oval. */
+.level{
+  min-height:clamp(148px, calc(10vw + 92px), 220px);
+  padding:clamp(12px, 1.5vw, 20px);
+  gap:clamp(12px, 1.6vw, 22px);
+}
+.level-thumb{
+  width:clamp(112px, 16vw, 184px);
+  height:auto;
+  aspect-ratio:1 / 1;
+  flex:0 0 clamp(112px, 16vw, 184px);
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(190,205,255,.3);
+  background:#080d17;
+  box-shadow:0 8px 24px rgba(0,0,0,.34);
+}
+.level-thumb img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+  border-radius:inherit;
+  background:#080d17;
+}
+.level-card-background{display:none!important}
+.level::before{content:none!important}
+@media(max-width:700px){
+  .level{min-height:124px;padding:11px;gap:11px}
+  .level-thumb{width:104px;height:104px;flex-basis:104px;border-radius:14px}
+}
+@media(max-width:420px){
+  .level{min-height:112px;gap:9px;padding:9px}
+  .level-thumb{width:88px;height:88px;flex-basis:88px;border-radius:12px}
+}
