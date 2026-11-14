@@ -178,8 +178,17 @@ async function showView(name){
   if(name==="admin") loadAdmin();
   if(name==="account") loadAccount();
 }
-document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
-document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.viewJump)));
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",e=>{
+  e.preventDefault();
+  const target=b.dataset.view;
+  const menu=$("moreMenu");
+  if(menu)menu.style.display="none";
+  showView(target).catch(error=>{console.error("Navigation failed:",error);toast("That section could not be opened.");});
+}));
+document.querySelectorAll("[data-view-jump]").forEach(b=>b.addEventListener("click",e=>{
+  e.preventDefault();
+  showView(b.dataset.viewJump).catch(error=>{console.error("Navigation failed:",error);toast("That section could not be opened.");});
+}));
 window.addEventListener("popstate",()=>showView((location.hash||"#rankings").slice(1)));
 
 
@@ -191,10 +200,14 @@ let __myLevelProgress=new Map();
 
 async function loadMyProgress(){
   __myLevelProgress=new Map();
-  const current=await session();
+  // Never let an auth/session request hold the public rankings hostage.
+  const current=await Promise.race([
+    session().catch(()=>null),
+    new Promise(resolve=>setTimeout(()=>resolve(null),2200))
+  ]);
   if(!current?.access_token)return;
   try{
-    const response=await fetch(API.completions,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+current.access_token},cache:"no-store"});
+    const response=await fetch(API.completions,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+current.access_token},cache:"no-store",signal:AbortSignal.timeout(7000)});
     const result=await response.json();
     if(!response.ok)throw new Error(result.error||"Could not load personal progress");
     for(const row of result.data||[]){
@@ -316,17 +329,26 @@ $("rankings").addEventListener("keydown",e=>{
 async function loadLevels(){
   if(__levelsPromise)return __levelsPromise;
   const el=$("rankings");
-  __levelsPromise=(async()=>{el.innerHTML='<div class="empty">Loading the level list…</div>';
+  __levelsPromise=(async()=>{
+    el.innerHTML='<div class="empty">Loading the level list…</div>';
     try{
-      const r=await fetch(API.levels+"?t="+Date.now(),{headers:{apikey:SUPABASE_PUBLISHABLE_KEY},cache:"no-store"});
+      const r=await fetch(API.levels+"?t="+Date.now(),{
+        headers:{apikey:SUPABASE_PUBLISHABLE_KEY},
+        cache:"no-store",
+        signal:AbortSignal.timeout(12000)
+      });
       const json=await r.json();
-      if(!r.ok)throw new Error(json?.error||"Could not load levels");
+      if(!r.ok)throw new Error(json?.error||"Could not load levels (HTTP "+r.status+").");
       __allLevels=(Array.isArray(json)?json:(json.data||[])).filter(x=>x.status!=="archived");
-      await loadMyProgress();
-      renderLevels();
       bindRankingFilters();
       renderLevels();
-    }catch(e){console.error(e);el.innerHTML='<div class="empty">The level list couldn’t load right now. Please try again shortly.</div>';}
+      // Personal progress is optional; load it after public levels are visible.
+      loadMyProgress().then(renderLevels).catch(error=>console.warn("Progress refresh skipped",error));
+    }catch(e){
+      console.error("Possible level list failed:",e);
+      el.innerHTML='<div class="empty">The level list couldn’t load. <button class="secondary" type="button" id="retryLevels">Try again</button><div class="muted" style="margin-top:8px">'+escapeHTML(e?.message||"Network error")+'</div></div>';
+      $("retryLevels")?.addEventListener("click",()=>loadLevels());
+    }
   })().finally(()=>{__levelsPromise=null});
   return __levelsPromise;
 }
