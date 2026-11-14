@@ -479,18 +479,16 @@ body{
 }
 
 
-/* Use each level's artwork as the background of its elliptical card. */
-.level{isolation:isolate;background:#0b101a}
-.level-card-background{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  z-index:0;opacity:.52;pointer-events:none;
-  filter:saturate(.9);
-}
-.level::before{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:linear-gradient(90deg,rgba(5,8,16,.90) 0%,rgba(5,8,16,.72) 48%,rgba(5,8,16,.56) 100%);
-}
+/* Keep the level card clean; show the thumbnail inside an oval frame. */
+.level{isolation:isolate;background:linear-gradient(110deg,rgba(18,26,43,.98),rgba(10,14,24,.98))}
+.level-card-background{display:none!important}
+.level::before{content:none}
 .level>*:not(.level-card-background){position:relative;z-index:1}
-.level-thumb{z-index:2}
-.level-thumb img{position:relative;z-index:0;border-radius:inherit}
-
+.level-thumb{
+  width:150px;height:82px;flex:none;overflow:hidden;
+  border-radius:50%;border:1px solid rgba(190,205,255,.28);
+  background:#080d17;position:relative;z-index:2;
+  box-shadow:0 8px 24px rgba(0,0,0,.3);
+}
+.level-thumb img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+@media(max-width:560px){.level-thumb{width:86px;height:58px}}
