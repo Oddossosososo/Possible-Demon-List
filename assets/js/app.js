@@ -319,6 +319,7 @@ function renderLevels(){
       const rank=i+1;
       const thumbnail=youtubeThumbnail(l.verification_url)||l.thumbnail_url||"";
       return `<article class="level ${isBeaten?"level-beaten":""}" data-level-id="${escapeHTML(l.id)}" tabindex="0" aria-label="Open details for ${escapeHTML(l.name||"level")}">
+        ${thumbnail?'<img class="level-card-background" src="'+escapeHTML(thumbnail)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':""}
         <div class="rank ${rank===1?"top":""}">#${rank}</div>
         ${thumbnail?'<div class="level-thumb" role="button" tabindex="0" aria-label="Watch '+escapeHTML(l.name||"Level")+'" onclick="event.stopPropagation();watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" onkeydown="if(event.key===\'Enter\'||event.key===\' \')watchLevelVideo(this.dataset.url,this.dataset.title,this.dataset.levelName)" data-url="'+escapeHTML(l.verification_url||"")+'" data-title="'+escapeHTML(l.name||"Level")+'" data-level-name="'+escapeHTML(l.name||"")+'"><img src="'+escapeHTML(thumbnail)+'" alt="'+escapeHTML(l.name||"Level")+' thumbnail" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.level-thumb\').remove()"></div>':""}
         <div class="level-main"><div class="level-name">${escapeHTML(l.name||"Unnamed Level")}</div><div class="level-meta">by ${escapeHTML(l.creator||"Unknown Creator")}</div><div class="level-id">GD ID ${escapeHTML(l.gd_level_id??"—")}</div>${l.current_wr?'<div class="level-wr"><span>WR</span>'+escapeHTML(l.current_wr)+'</div>':""}</div>
