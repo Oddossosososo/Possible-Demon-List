@@ -126,7 +126,7 @@ function youtubeThumbnail(url){
 function setupVideoPlayer(id){
   const frame=$("videoFrame");
   if(!frame || !id)return;
-  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?autoplay=0&controls=1&rel=0&playsinline=1";
+  frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?autoplay=1&mute=1&controls=1&rel=0&playsinline=1";
 }
 
 function watchLevelVideo(url,title,levelName){
