@@ -490,7 +490,7 @@ body{
   background:#080d17;position:relative;z-index:2;
   box-shadow:0 8px 24px rgba(0,0,0,.3);
 }
-.level-thumb img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+.level-thumb img{width:100%;height:100%;display:block;object-fit:contain;object-position:center;border-radius:inherit;background:#080d17}
 @media(max-width:560px){.level-thumb{width:86px;height:58px}}
 
 
