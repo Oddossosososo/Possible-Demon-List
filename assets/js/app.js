@@ -123,9 +123,35 @@ function youtubeThumbnail(url){
   const id=youtubeId(url);
   return id ? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "";
 }
+let __ytPlayer=null;
+let __ytPlayerReady=false;
+function initYouTubePlayer(){
+  const frame=$("videoFrame");
+  if(!frame || !window.YT?.Player || __ytPlayer)return;
+  __ytPlayer=new YT.Player(frame,{
+    host:"https://www.youtube-nocookie.com",
+    playerVars:{autoplay:0,controls:1,rel:0,playsinline:1},
+    events:{onReady:()=>{__ytPlayerReady=true;}}
+  });
+}
+const __previousYouTubeReady=window.onYouTubeIframeAPIReady;
+window.onYouTubeIframeAPIReady=function(){
+  if(typeof __previousYouTubeReady==="function")__previousYouTubeReady();
+  initYouTubePlayer();
+};
+if(window.YT?.Player)initYouTubePlayer();
+
 function setupVideoPlayer(id){
   const frame=$("videoFrame");
   if(!frame || !id)return;
+  if(__ytPlayerReady && __ytPlayer){
+    // These calls happen directly inside the thumbnail click handler,
+    // allowing the browser to treat playback as user-initiated.
+    __ytPlayer.unMute();
+    __ytPlayer.setVolume(100);
+    __ytPlayer.loadVideoById(id);
+    return;
+  }
   frame.src="https://www.youtube.com/embed/"+encodeURIComponent(id)+"?autoplay=1&mute=0&controls=1&rel=0&playsinline=1";
 }
 
@@ -144,7 +170,8 @@ function watchLevelVideo(url,title,levelName){
 
 function closeVideo(){
   const frame=$("videoFrame");
-  if(frame)frame.src="about:blank";
+  if(__ytPlayerReady && __ytPlayer){__ytPlayer.stopVideo();}
+  else if(frame)frame.src="about:blank";
   const modal=$("videoModal");
   if(modal){
     modal.classList.remove("show");
